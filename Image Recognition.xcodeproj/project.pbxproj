@@ -11,6 +11,12 @@
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		F404B3C711131BA4006F3762 /* nonmax.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C011131BA4006F3762 /* nonmax.c */; };
+		F404B3C811131BA4006F3762 /* fast.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C211131BA4006F3762 /* fast.c */; };
+		F404B3C911131BA4006F3762 /* fast_11.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C311131BA4006F3762 /* fast_11.c */; };
+		F404B3CA11131BA4006F3762 /* fast_10.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C411131BA4006F3762 /* fast_10.c */; };
+		F404B3CB11131BA4006F3762 /* fast_9.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C511131BA4006F3762 /* fast_9.c */; };
+		F404B3CC11131BA4006F3762 /* fast_12.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C611131BA4006F3762 /* fast_12.c */; };
 		F4099A701109A8B9009CE4D2 /* PSO.m in Sources */ = {isa = PBXBuildFile; fileRef = F4099A6F1109A8B9009CE4D2 /* PSO.m */; };
 		F4099AB61109BCDA009CE4D2 /* Particle.m in Sources */ = {isa = PBXBuildFile; fileRef = F4099AB51109BCDA009CE4D2 /* Particle.m */; };
 		F40E8372110856C70015069A /* MainWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = F40E8371110856C70015069A /* MainWindowController.m */; };
@@ -30,6 +36,13 @@
 		32CA4F630368D1EE00C91783 /* Image Recognition_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Image Recognition_Prefix.pch"; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Image Recognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Image Recognition.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F404B3C011131BA4006F3762 /* nonmax.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = nonmax.c; sourceTree = "<group>"; };
+		F404B3C111131BA4006F3762 /* fast.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fast.h; sourceTree = "<group>"; };
+		F404B3C211131BA4006F3762 /* fast.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fast.c; sourceTree = "<group>"; };
+		F404B3C311131BA4006F3762 /* fast_11.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fast_11.c; sourceTree = "<group>"; };
+		F404B3C411131BA4006F3762 /* fast_10.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fast_10.c; sourceTree = "<group>"; };
+		F404B3C511131BA4006F3762 /* fast_9.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fast_9.c; sourceTree = "<group>"; };
+		F404B3C611131BA4006F3762 /* fast_12.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fast_12.c; sourceTree = "<group>"; };
 		F4099A6E1109A8B9009CE4D2 /* PSO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PSO.h; sourceTree = "<group>"; };
 		F4099A6F1109A8B9009CE4D2 /* PSO.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PSO.m; sourceTree = "<group>"; };
 		F4099AB41109BCDA009CE4D2 /* Particle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Particle.h; sourceTree = "<group>"; };
@@ -102,6 +115,7 @@
 		29B97314FDCFA39411CA2CEA /* Image Recognition */ = {
 			isa = PBXGroup;
 			children = (
+				F404B3BB11131B85006F3762 /* FAST */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
@@ -137,6 +151,20 @@
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F404B3BB11131B85006F3762 /* FAST */ = {
+			isa = PBXGroup;
+			children = (
+				F404B3C011131BA4006F3762 /* nonmax.c */,
+				F404B3C111131BA4006F3762 /* fast.h */,
+				F404B3C211131BA4006F3762 /* fast.c */,
+				F404B3C311131BA4006F3762 /* fast_11.c */,
+				F404B3C411131BA4006F3762 /* fast_10.c */,
+				F404B3C511131BA4006F3762 /* fast_9.c */,
+				F404B3C611131BA4006F3762 /* fast_12.c */,
+			);
+			name = FAST;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -199,6 +227,12 @@
 				F40E8377110859160015069A /* MainWindow.m in Sources */,
 				F4099A701109A8B9009CE4D2 /* PSO.m in Sources */,
 				F4099AB61109BCDA009CE4D2 /* Particle.m in Sources */,
+				F404B3C711131BA4006F3762 /* nonmax.c in Sources */,
+				F404B3C811131BA4006F3762 /* fast.c in Sources */,
+				F404B3C911131BA4006F3762 /* fast_11.c in Sources */,
+				F404B3CA11131BA4006F3762 /* fast_10.c in Sources */,
+				F404B3CB11131BA4006F3762 /* fast_9.c in Sources */,
+				F404B3CC11131BA4006F3762 /* fast_12.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -14,6 +14,7 @@
 
 - (IBAction)start:(id)sender{
 	
+	if(!mCaptureSession){
 	[mCaptureView setDelegate:self];
 	
 	mCaptureSession = [[QTCaptureSession alloc] init];
@@ -30,14 +31,15 @@
 	success = [mCaptureSession addInput:mCaptureVideoDeviceInput error:&error];
 	
 	[mCaptureView setCaptureSession:mCaptureSession];
-	
-	// Start capturing!
+	}
+	// Start capturing
 	[mCaptureSession startRunning];
 	
 
 }
 
 - (IBAction)stop:(id)sender{
+
 	[mCaptureSession stopRunning];
 }
 
@@ -119,12 +121,18 @@
 	// Now we can get a pointer to the image data associated with the bitmap
 	// context.
 	unsigned char* data = CGBitmapContextGetData(context);
+	int numcorners;
+	xy* cornersList;
+	int* scores;
 	
 	if (data != NULL) {
-		
-		for(int i = 0; i<SWARMSIZE; i++){
-
+		cornersList = fast9_detect(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, 3, &numcorners);
+		scores = fast9_score(data, bitmapBytesPerRow, cornersList, numcorners, 3);
+		for(int i = 0; i<numcorners; i++){
+			data[cornersList[i].x + bitmapBytesPerRow * cornersList[i].y ] = scores[i];
 		}
+		free(cornersList);
+		free(scores);
 
 	}
 

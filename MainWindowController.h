@@ -10,13 +10,12 @@
 #import <QTKit/QTKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import "MainWindow.h"
-#import "PSO.h"
+#import "fast.h"
 
 @interface MainWindowController : NSObject {
 	QTCaptureSession *mCaptureSession;
 	QTCaptureDeviceInput *mCaptureVideoDeviceInput;
 	IBOutlet QTCaptureView *mCaptureView;
-	PSO *mPSO;
 }
 
 - (IBAction)start:(id)sender;
