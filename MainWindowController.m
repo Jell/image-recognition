@@ -13,9 +13,6 @@
 
 
 - (IBAction)start:(id)sender{
-
-	mPSO = [[PSO alloc] init];
-	[mPSO initSwarm];
 	
 	[mCaptureView setDelegate:self];
 	
@@ -72,13 +69,12 @@
 	size_t pixelsHigh = CGImageGetHeight(inImage);
 	
 	// Declare the number of bytes per row. Each pixel in the bitmap in this
-	// example is represented by 4 bytes; 8 bits each of red, green, blue, and
-	// alpha.
-	bitmapBytesPerRow   = (pixelsWide * 4);
+	// example is represented by 1 byte of grey
+	bitmapBytesPerRow   = (pixelsWide);
 	bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
 	
 	// Use the generic RGB color space.
-	colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+	colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
 	if (colorSpace == NULL)
 	{
 		fprintf(stderr, "Error allocating color space\n");
@@ -105,7 +101,7 @@
 									 8,      // bits per component
 									 bitmapBytesPerRow,
 									 colorSpace,
-									 kCGImageAlphaPremultipliedFirst);
+									 kCGImageAlphaNone);
 	if (context == NULL)
 	{
 		free (bitmapData);
@@ -125,43 +121,10 @@
 	unsigned char* data = CGBitmapContextGetData(context);
 	
 	if (data != NULL) {
-		[mPSO performIteration:data];
 		
 		for(int i = 0; i<SWARMSIZE; i++){
-			int offset = 4*((int) mPSO->particleArray[i].mX) + bitmapBytesPerRow * ((int) mPSO->particleArray[i].mY);
-			if((offset < bitmapByteCount - 4 - 10*4 - 10*bitmapBytesPerRow) && (offset > 0)){
-				for(int k = 0; k<10; k++){
-					for(int l = 0; l<10; l++){
-						//alpha
-						data[offset + 4*k + bitmapBytesPerRow*l] = 255;
-						//red
-						data[offset+1 + 4*k + bitmapBytesPerRow*l] = 0;
-						//green
-						data[offset+2 + 4*k + bitmapBytesPerRow*l] = 255;
-						//blue
-						data[offset+3 + 4*k + bitmapBytesPerRow*l] = 0;
-					}
-				}
-			}
 
 		}
-		
-		int offset = 4*((int) mPSO->globalBest.mX) + bitmapBytesPerRow * ((int) mPSO->globalBest.mY);
-		if((offset < bitmapByteCount - 4 - 10*4 - 10*bitmapBytesPerRow) && (offset > 0)){
-			for(int k = 0; k<10; k++){
-				for(int l = 0; l<10; l++){
-					//alpha
-					data[offset + 4*k + bitmapBytesPerRow*l] = 255;
-					//red
-					data[offset+1 + 4*k + bitmapBytesPerRow*l] = 255;
-					//green
-					data[offset+2 + 4*k + bitmapBytesPerRow*l] = 0;
-					//blue
-					data[offset+3 + 4*k + bitmapBytesPerRow*l] = 0;
-				}
-			}
-		}
-		
 
 	}
 
