@@ -145,14 +145,14 @@
 		for(int i = 0; i<numcorners; i++){
 			data[cornersList[i].x + bitmapBytesPerRow * cornersList[i].y ] = 255;
 			
-			
+			/*
 			if(	(cornersList[i].x + anglesList[i].x > 0) &&
 				(cornersList[i].x + anglesList[i].x < pixelsWide) &&
 				(cornersList[i].y + anglesList[i].y > 0) &&
 				(cornersList[i].y + anglesList[i].y < pixelsHigh)){
 				lineBresenham(cornersList[i].x, cornersList[i].y, cornersList[i].x + anglesList[i].x,  cornersList[i].y + anglesList[i].y, data, bitmapBytesPerRow);
 			}
-			/*
+			*/
 			if(	(cornersList[i].x - 12 > 0) &&
 			   (cornersList[i].x + 12 < pixelsWide) &&
 			   (cornersList[i].y - 12 > 0) &&
@@ -164,7 +164,7 @@
 					data[sampleGrid[k].x + cornersList[i].x + bitmapBytesPerRow*(sampleGrid[k].y + cornersList[i].y)] = 255;
 				}
 
-			}*/
+			}
 		}
 		
 		free(sampleGrid);
