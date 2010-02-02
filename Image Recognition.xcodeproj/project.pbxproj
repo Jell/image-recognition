@@ -19,6 +19,8 @@
 		F404B3CC11131BA4006F3762 /* fast_12.c in Sources */ = {isa = PBXBuildFile; fileRef = F404B3C611131BA4006F3762 /* fast_12.c */; };
 		F4099A701109A8B9009CE4D2 /* PSO.m in Sources */ = {isa = PBXBuildFile; fileRef = F4099A6F1109A8B9009CE4D2 /* PSO.m */; };
 		F4099AB61109BCDA009CE4D2 /* Particle.m in Sources */ = {isa = PBXBuildFile; fileRef = F4099AB51109BCDA009CE4D2 /* Particle.m */; };
+		F40D063D1116EBF500242034 /* raw_drawing.c in Sources */ = {isa = PBXBuildFile; fileRef = F40D063C1116EBF500242034 /* raw_drawing.c */; };
+		F40D077B111712A300242034 /* hip_calculus.c in Sources */ = {isa = PBXBuildFile; fileRef = F40D077A111712A300242034 /* hip_calculus.c */; };
 		F40E8372110856C70015069A /* MainWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = F40E8371110856C70015069A /* MainWindowController.m */; };
 		F40E8377110859160015069A /* MainWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = F40E8376110859160015069A /* MainWindow.m */; };
 		F40E83A11108621B0015069A /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F40E83A01108621B0015069A /* QTKit.framework */; };
@@ -47,6 +49,11 @@
 		F4099A6F1109A8B9009CE4D2 /* PSO.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PSO.m; sourceTree = "<group>"; };
 		F4099AB41109BCDA009CE4D2 /* Particle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Particle.h; sourceTree = "<group>"; };
 		F4099AB51109BCDA009CE4D2 /* Particle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Particle.m; sourceTree = "<group>"; };
+		F40D063B1116EBF500242034 /* raw_drawing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = raw_drawing.h; sourceTree = "<group>"; };
+		F40D063C1116EBF500242034 /* raw_drawing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = raw_drawing.c; sourceTree = "<group>"; };
+		F40D06621117028300242034 /* xy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xy.h; sourceTree = "<group>"; };
+		F40D0779111712A300242034 /* hip_calculus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hip_calculus.h; sourceTree = "<group>"; };
+		F40D077A111712A300242034 /* hip_calculus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hip_calculus.c; sourceTree = "<group>"; };
 		F40E8370110856C70015069A /* MainWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainWindowController.h; sourceTree = "<group>"; };
 		F40E8371110856C70015069A /* MainWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MainWindowController.m; sourceTree = "<group>"; };
 		F40E8375110859160015069A /* MainWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainWindow.h; sourceTree = "<group>"; };
@@ -115,6 +122,7 @@
 		29B97314FDCFA39411CA2CEA /* Image Recognition */ = {
 			isa = PBXGroup;
 			children = (
+				F40D06381116EBD500242034 /* Pixel Manipulations */,
 				F404B3BB11131B85006F3762 /* FAST */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
@@ -165,6 +173,18 @@
 				F404B3C611131BA4006F3762 /* fast_12.c */,
 			);
 			name = FAST;
+			sourceTree = "<group>";
+		};
+		F40D06381116EBD500242034 /* Pixel Manipulations */ = {
+			isa = PBXGroup;
+			children = (
+				F40D063B1116EBF500242034 /* raw_drawing.h */,
+				F40D063C1116EBF500242034 /* raw_drawing.c */,
+				F40D06621117028300242034 /* xy.h */,
+				F40D0779111712A300242034 /* hip_calculus.h */,
+				F40D077A111712A300242034 /* hip_calculus.c */,
+			);
+			name = "Pixel Manipulations";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -233,6 +253,8 @@
 				F404B3CA11131BA4006F3762 /* fast_10.c in Sources */,
 				F404B3CB11131BA4006F3762 /* fast_9.c in Sources */,
 				F404B3CC11131BA4006F3762 /* fast_12.c in Sources */,
+				F40D063D1116EBF500242034 /* raw_drawing.c in Sources */,
+				F40D077B111712A300242034 /* hip_calculus.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

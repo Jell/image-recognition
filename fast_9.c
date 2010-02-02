@@ -5907,4 +5907,36 @@ xy* fast9_detect(const byte* im, int xsize, int ysize, int stride, int b, int* r
 
 }
 
+xy fast9_corner_angle(const byte* im, const int pixel[]){
+	xy result;
+	result.x = (4 * (im[pixel[1]]  - im[pixel[9]]) +
+				6 * (im[pixel[2]] - im[pixel[10]]) +
+				7 * (im[pixel[3]] - im[pixel[11]]) +
+				8 * (im[pixel[4]] - im[pixel[12]]) +
+				7 * (im[pixel[5]] - im[pixel[13]]) +
+				6 * (im[pixel[6]] - im[pixel[14]]) +
+				4 * (im[pixel[7]] - im[pixel[15]])) >> 5;
+	
+	result.y = (4 * (im[pixel[5]]  - im[pixel[13]]) +
+				6 * (im[pixel[6]]  - im[pixel[14]]) +
+				7 * (im[pixel[7]]  - im[pixel[15]]) +
+				8 * (im[pixel[8]]  - im[pixel[0]])  +
+				7 * (im[pixel[9]]  - im[pixel[1]])  +
+				6 * (im[pixel[10]] - im[pixel[2]])  +
+				4 * (im[pixel[11]] - im[pixel[3]])) >> 5;
+	
+	return result;
+}
+
+xy* fast9_angles(const byte* im, int stride, xy* corners, int num_corners){
+	int pixel[16];
+	make_offsets(pixel, stride);
+	xy* angles = (xy*)malloc(sizeof(xy)* num_corners);
+	
+    for(int n=0; n < num_corners; n++)
+		angles[n] = fast9_corner_angle(im + corners[n].y*stride + corners[n].x, pixel);
+	
+	return angles;
+}
+
 

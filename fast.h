@@ -1,7 +1,7 @@
 #ifndef FAST_H
 #define FAST_H
+#import "xy.h"
 
-typedef struct { int x, y; } xy; 
 typedef unsigned char byte;
 
 int fast9_corner_score(const byte* p, const int pixel[], int bstart);
@@ -26,6 +26,9 @@ xy* fast11_detect_nonmax(const byte* im, int xsize, int ysize, int stride, int b
 xy* fast12_detect_nonmax(const byte* im, int xsize, int ysize, int stride, int b, int* ret_num_corners);
 
 xy* nonmax_suppression(const xy* corners, const int* scores, int num_corners, int* ret_num_nonmax);
+
+xy fast9_corner_angle(const byte* im, const int pixel[]);
+xy* fast9_angles(const byte* im, int stride, xy* corners, int num_corners);
 
 
 #endif

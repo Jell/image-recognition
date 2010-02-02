@@ -7,7 +7,8 @@
 //
 
 #import "MainWindowController.h"
-
+#import "raw_drawing.h"
+#import "hip_calculus.h"
 
 @implementation MainWindowController
 
@@ -43,6 +44,8 @@
 	[mCaptureSession stopRunning];
 }
 
+
+
 - (CIImage *)view:(QTCaptureView *)view willDisplayImage:(CIImage *)image{
 	CGRect rect;
 	CGPoint origin;
@@ -55,7 +58,16 @@
 	
 	rect.origin = origin;
 	rect.size = size;
-	
+	/*
+	CIFilter *sharpen = [CIFilter filterWithName:@"CISharpenLuminance"];
+	[sharpen setDefaults];
+	[sharpen setValue: [NSNumber numberWithFloat: 0.4]
+			   forKey: @"inputSharpness"];
+	[sharpen setValue: [[image imageByApplyingTransform:CGAffineTransformMakeScale(0.4, 0.4)] imageByCroppingToRect:rect]
+			   forKey: @"inputImage"];
+
+	CIImage *imageCrop = [sharpen valueForKey: @"outputImage"];
+	*/
 	CIImage *imageCrop = [[image imageByApplyingTransform:CGAffineTransformMakeScale(0.4, 0.4)] imageByCroppingToRect:rect];
 	NSBitmapImageRep* rep = [[[NSBitmapImageRep alloc] initWithCIImage:imageCrop] autorelease];
 	CGImageRef inImage = rep.CGImage;
@@ -121,18 +133,43 @@
 	// Now we can get a pointer to the image data associated with the bitmap
 	// context.
 	unsigned char* data = CGBitmapContextGetData(context);
-	int numcorners;
-	xy* cornersList;
-	int* scores;
+	
 	
 	if (data != NULL) {
-		cornersList = fast9_detect(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, 3, &numcorners);
-		scores = fast9_score(data, bitmapBytesPerRow, cornersList, numcorners, 3);
+		int numcorners;
+		xy* cornersList;
+		xy* anglesList;
+		xy sampleGrid[64];
+		cornersList = fast9_detect_nonmax(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, 10, &numcorners);
+		anglesList = fast9_angles(data, bitmapBytesPerRow, cornersList, numcorners);
 		for(int i = 0; i<numcorners; i++){
-			data[cornersList[i].x + bitmapBytesPerRow * cornersList[i].y ] = scores[i];
+			data[cornersList[i].x + bitmapBytesPerRow * cornersList[i].y ] = 255;
+			
+			
+			if(	(cornersList[i].x + anglesList[i].x > 0) &&
+				(cornersList[i].x + anglesList[i].x < pixelsWide) &&
+				(cornersList[i].y + anglesList[i].y > 0) &&
+				(cornersList[i].y + anglesList[i].y < pixelsHigh)){
+				lineBresenham(cornersList[i].x, cornersList[i].y, cornersList[i].x + anglesList[i].x,  cornersList[i].y + anglesList[i].y, data, bitmapBytesPerRow);
+			}
+			/*
+			if(	(cornersList[i].x - 12 > 0) &&
+			   (cornersList[i].x + 12 < pixelsWide) &&
+			   (cornersList[i].y - 12 > 0) &&
+			   (cornersList[i].y + 12 < pixelsHigh)){
+				
+
+				setRotatedSampleGrid(sampleGrid, anglesList[i]);
+				for(int k =0; k<64; k++){
+					data[sampleGrid[k].x + cornersList[i].x + bitmapBytesPerRow*(sampleGrid[k].y + cornersList[i].y)] = 255;
+				}
+
+			}*/
 		}
+		
+		free(sampleGrid);
 		free(cornersList);
-		free(scores);
+		free(anglesList);
 
 	}
 
