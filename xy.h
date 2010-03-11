@@ -8,5 +8,6 @@
  */
 #ifndef XY_H
 #define XY_H
-typedef struct { int x, y; } xy; 
+typedef struct { int x, y; } xy;
+typedef struct { float x, y, z; } xyz; 
 #endif

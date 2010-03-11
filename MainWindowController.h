@@ -16,9 +16,31 @@
 	QTCaptureSession *mCaptureSession;
 	QTCaptureDeviceInput *mCaptureVideoDeviceInput;
 	IBOutlet QTCaptureView *mCaptureView;
+	IBOutlet NSImageView *ghostView;
+	int indexX;
+	int indexY;
+	CIImage * referenceImage;
+	
+	NSPersistentStoreCoordinator *persistentStoreCoordinator;
+    NSManagedObjectModel *managedObjectModel;
+    NSManagedObjectContext *managedObjectContext;
+	CATransform3D inverseTransform;
+	
+	xyz upLeft;
+	xyz upRight;
+	xyz downLeft;
+	xyz downRight;
 }
 
+- (NSPersistentStoreCoordinator *)persistentStoreCoordinator;
+- (NSManagedObjectModel *)managedObjectModel;
+- (NSManagedObjectContext *)managedObjectContext;
+-(void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta;
+-(NSManagedObject *)fetchFeaturePointX:(int)x Y:(int)y teta:(int)teta;
+-(void)printDatabase;
 - (IBAction)start:(id)sender;
 - (IBAction)stop:(id)sender;
+- (CIImage *)processImage:(CIImage *)image;
+-(xyz)findZforXY:(xyz)input fromA:(xyz)pointA B:(xyz)pointB C:(xyz)pointC;
 
 @end

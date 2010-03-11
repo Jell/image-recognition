@@ -33,3 +33,7 @@ void setRotatedSampleGrid(xy sampleGrid[], xy rotationVector){
 		}
 	}
 }
+
+int getAngle(xy rotationVector){
+	return (int) (180 * atan2((float)rotationVector.y, (float)rotationVector.x) / M_PI);
+}

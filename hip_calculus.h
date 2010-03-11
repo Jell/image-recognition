@@ -12,5 +12,6 @@
 
 xy rotatePointXY(xy pointVector, xy rotationVector);
 void setRotatedSampleGrid(xy sampleGrid[], xy rotationVector);
+int getAngle(xy rotationVector);
 
 #endif

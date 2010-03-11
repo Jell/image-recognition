@@ -24,7 +24,10 @@
 		F40E8372110856C70015069A /* MainWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = F40E8371110856C70015069A /* MainWindowController.m */; };
 		F40E8377110859160015069A /* MainWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = F40E8376110859160015069A /* MainWindow.m */; };
 		F40E83A11108621B0015069A /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F40E83A01108621B0015069A /* QTKit.framework */; };
+		F41E45F21148F05100A735A7 /* FeaturePointDatabase.xcdatamodel in Sources */ = {isa = PBXBuildFile; fileRef = F41E45F11148F05100A735A7 /* FeaturePointDatabase.xcdatamodel */; };
+		F41E47DE11493C7100A735A7 /* square.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F41E47DD11493C7100A735A7 /* square.jpg */; };
 		F423C3D3110D92EC009E01AE /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F423C3D2110D92EC009E01AE /* QuartzCore.framework */; };
+		F4290CB611469E38002BF3A7 /* ghostbusters.png in Resources */ = {isa = PBXBuildFile; fileRef = F4290CB511469E38002BF3A7 /* ghostbusters.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,7 +62,10 @@
 		F40E8375110859160015069A /* MainWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainWindow.h; sourceTree = "<group>"; };
 		F40E8376110859160015069A /* MainWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MainWindow.m; sourceTree = "<group>"; };
 		F40E83A01108621B0015069A /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
+		F41E45F11148F05100A735A7 /* FeaturePointDatabase.xcdatamodel */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = wrapper.xcdatamodel; path = FeaturePointDatabase.xcdatamodel; sourceTree = "<group>"; };
+		F41E47DD11493C7100A735A7 /* square.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = square.jpg; sourceTree = "<group>"; };
 		F423C3D2110D92EC009E01AE /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		F4290CB511469E38002BF3A7 /* ghostbusters.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ghostbusters.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +151,9 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				F41E47DD11493C7100A735A7 /* square.jpg */,
+				F41E45F11148F05100A735A7 /* FeaturePointDatabase.xcdatamodel */,
+				F4290CB511469E38002BF3A7 /* ghostbusters.png */,
 				8D1107310486CEB800E47090 /* Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
@@ -232,6 +241,8 @@
 			files = (
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
+				F4290CB611469E38002BF3A7 /* ghostbusters.png in Resources */,
+				F41E47DE11493C7100A735A7 /* square.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,6 +266,7 @@
 				F404B3CC11131BA4006F3762 /* fast_12.c in Sources */,
 				F40D063D1116EBF500242034 /* raw_drawing.c in Sources */,
 				F40D077B111712A300242034 /* hip_calculus.c in Sources */,
+				F41E45F21148F05100A735A7 /* FeaturePointDatabase.xcdatamodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
