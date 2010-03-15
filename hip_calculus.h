@@ -13,5 +13,8 @@
 xy rotatePointXY(xy pointVector, xy rotationVector);
 void setRotatedSampleGrid(xy sampleGrid[], xy rotationVector);
 int getAngle(xy rotationVector);
+void variance( float *arr, int no, float *var, float *avg);
+void equalize( float *arr, int no);
+int bitcount (unsigned long long n);
 
 #endif

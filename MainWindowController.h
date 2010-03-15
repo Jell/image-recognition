@@ -15,8 +15,10 @@
 @interface MainWindowController : NSObject {
 	QTCaptureSession *mCaptureSession;
 	QTCaptureDeviceInput *mCaptureVideoDeviceInput;
+	NSOperationQueue *opQueue;
 	IBOutlet QTCaptureView *mCaptureView;
 	IBOutlet NSImageView *ghostView;
+	IBOutlet NSProgressIndicator *mProgressIndicator;
 	int indexX;
 	int indexY;
 	CIImage * referenceImage;
@@ -30,17 +32,22 @@
 	xyz upRight;
 	xyz downLeft;
 	xyz downRight;
+	
+	NSArray *hipList;
 }
 
 - (NSPersistentStoreCoordinator *)persistentStoreCoordinator;
 - (NSManagedObjectModel *)managedObjectModel;
 - (NSManagedObjectContext *)managedObjectContext;
--(void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta;
+-(void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta samples:(float *)samples;
 -(NSManagedObject *)fetchFeaturePointX:(int)x Y:(int)y teta:(int)teta;
 -(void)printDatabase;
 - (IBAction)start:(id)sender;
 - (IBAction)stop:(id)sender;
+- (IBAction)train:(id)sender;
 - (CIImage *)processImage:(CIImage *)image;
--(xyz)findZforXY:(xyz)input fromA:(xyz)pointA B:(xyz)pointB C:(xyz)pointC;
+- (void)processImageTraining:(CIImage *)image;
+- (xyz)findZforXY:(xyz)input fromA:(xyz)pointA B:(xyz)pointB C:(xyz)pointC;
+- (void)finalize;
 
 @end

@@ -37,3 +37,38 @@ void setRotatedSampleGrid(xy sampleGrid[], xy rotationVector){
 int getAngle(xy rotationVector){
 	return (int) (180 * atan2((float)rotationVector.y, (float)rotationVector.x) / M_PI);
 }
+
+void variance( float *arr, int no, float *var, float *avg)
+{
+    int i;
+    float sum = 0.0, sum2 = 0.0, tavg;
+	
+    for (i = 0; i < no; i++)
+		sum += arr[i];
+    tavg = sum / (float) no;
+	
+    for (i = 0; i < no; i++)
+		sum2 += (tavg - arr[i]) * (tavg - arr[i]);
+	
+    *avg = tavg;
+    *var = sum2 / (float) (no - 1);
+}
+
+void equalize( float *arr, int no){
+	float var;
+	float avg;
+	variance(arr, no, &var, &avg);
+	float stddev = sqrt(var);
+	for(int i = 0; i <64; i++){
+		arr[i] = (arr[i] - avg)/stddev;
+	}
+}
+
+int bitcount (unsigned long long n) {
+	int count = 0;
+	while (n) {
+		count += n & 0x1u;
+		n >>= 1;
+	}
+	return count;
+}
