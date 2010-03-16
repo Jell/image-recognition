@@ -11,6 +11,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import "MainWindow.h"
 #import "fast.h"
+#import "homest.h"
 
 @interface MainWindowController : NSObject {
 	QTCaptureSession *mCaptureSession;
@@ -48,6 +49,7 @@
 - (CIImage *)processImage:(CIImage *)image;
 - (void)processImageTraining:(CIImage *)image;
 - (xyz)findZforXY:(xyz)input fromA:(xyz)pointA B:(xyz)pointB C:(xyz)pointC;
+-(void)genertateHipList;
 - (void)finalize;
 
 @end

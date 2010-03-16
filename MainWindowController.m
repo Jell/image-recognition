@@ -13,7 +13,10 @@
 #define GRIDSIZE				70
 #define IMAGESIZE				200
 #define ITERATIONNUMBER			10
-#define FEATUREPOINTS_NUMBER	200
+#define FEATUREPOINTS_NUMBER	100
+#define ACCEPT_THRESHOLD		63
+#define INL_PCENT 0.7
+
 @implementation MainWindowController
 
 -(void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta samples:(float *)samples{
@@ -307,7 +310,7 @@
 
 	NSError *error;
 	
-	hipList = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
+	hipList = [[[managedObjectContext executeFetchRequest:request error:&error] mutableCopy] retain];
 	[request release];
 	
 }
@@ -386,7 +389,7 @@
 		long long compareR5 = [[object valueForKey:@"R5"] longLongValue];
 		
 		int result = bitcount((R1 & compareR1) | (R2 & compareR2) | (R3 & compareR3) | (R4 & compareR4) | (R5 & compareR5));
-		if(result >=62){
+		if(result >=ACCEPT_THRESHOLD){
 			*x =  [[object valueForKey:@"x"] intValue];
 			*y =  [[object valueForKey:@"y"] intValue];
 			*teta = [[object valueForKey:@"teta"] intValue];
@@ -472,7 +475,7 @@
 		xy sampleGrid[64];
 		cornersList = fast9_detect_nonmax(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, 20, &numcorners);
 		anglesList = fast9_angles(data, bitmapBytesPerRow, cornersList, numcorners);
-		
+		xy *foundCorrespondances = (xy*)malloc(sizeof(xy)*numcorners);
 		NSMutableArray *arrayOfBins = [[NSMutableArray alloc] initWithCapacity:16];
 		
 		for(int i = 0; i< 16; i++){
@@ -502,20 +505,16 @@
 				int matchTeta = 0;
 				
 				if([self testSampleGrid:sampleValues x:&matchX y:&matchY teta:&matchTeta]){
-					/*
-					for(int k =0; k<64; k++){
-						int index = sampleGrid[k].x + cornersList[i].x + bitmapBytesPerRow*(sampleGrid[k].y + cornersList[i].y);
-						data[index] = 255;
-					}*/
 					
 					int angleBin = (360 + getAngle(anglesList[i]) - matchTeta)%360;
-					
-					int n = 0;
-					for(NSMutableArray *histogram in arrayOfBins){
+			
+					for(int n = 0; n<16; n++){
 						if(angleBin > 22.5 * n && angleBin < 22.5 *n + 30){
+							NSMutableArray *histogram = [arrayOfBins objectAtIndex:n];
 							[histogram addObject:[NSNumber numberWithInt:i]];
+							foundCorrespondances[i].x = matchX;
+							foundCorrespondances[i].y = matchY;
 						}
-						n++;
 					}
 				}
 			}
@@ -524,6 +523,7 @@
 		int bestBinSize = 0;
 		NSMutableArray *bestBin = nil;
 		for(NSMutableArray *histogram in arrayOfBins){
+			//NSLog(@"histogram");
 			int histogramSize = [histogram count];
 			if(histogramSize > 5 && histogramSize > bestBinSize){
 				bestBinSize = histogramSize;
@@ -531,7 +531,90 @@
 			}
 		}
 		
+		if(bestBin!=nil){
+			double (*pts0)[2], (*pts1)[2];
+			int npts, donorm, noutl, *outidx=NULL;
+			double H[NUM_HPARAMS];
+			
+			npts = bestBinSize;
+			pts0=(double (*)[2])malloc(npts*sizeof(double[2]));
+			pts1=(double (*)[2])malloc(npts*sizeof(double[2]));
+			
+			for(int k = 0; k < npts; k++){
+				int index = [[bestBin objectAtIndex:k] intValue];
+				pts0[k][0] = foundCorrespondances[index].x;
+				pts0[k][1] = foundCorrespondances[index].y;
+				pts1[k][0] = cornersList[index].x; 
+				pts1[k][1] = cornersList[index].y;
+				
+				
+				for(int i = -5; i<5; i++){
+					for(int j = -5; j<5; j++){
+						int dataIndex = i + foundCorrespondances[index].x + bitmapBytesPerRow*(j + foundCorrespondances[index].y);
+						data[dataIndex] = 255;
+					}
+				}
+			}
+			
+			//int cstfunc=HOMEST_SYM_XFER_ERROR; // use the symmetric transfer error
+			//cstfunc=HOMEST_XFER_ERROR; // use the transfer error in 2nd image
+			//cstfunc=HOMEST_SAMPSON_ERROR; //use the Sampson error
+			int cstfunc=HOMEST_REPR_ERROR; // use the reprojection error
+			//cstfunc=HOMEST_NO_NLN_REFINE; // no refinement
+			homest(pts0, pts1, npts, INL_PCENT, H, donorm, cstfunc, outidx, &noutl, 1);
+			//homestaff(pts0, pts1, npts, INL_PCENT, H, donorm, outidx, &noutl, 1);
+			
+			xyz cornerUpLeft = {0,IMAGESIZE,1};
+			xyz cornerUpRight = {IMAGESIZE,IMAGESIZE,1};
+			xyz cornerDownLeft = {0,0,1};
+			xyz cornerDownRight = {IMAGESIZE,0,1};
+			
+			xyz transUpLeft = {
+									cornerUpLeft.x *H[0] + cornerUpLeft.y*H[1] + cornerUpLeft.z*H[2],
+									cornerUpLeft.x *H[3] + cornerUpLeft.y*H[4] + cornerUpLeft.z*H[5],
+									cornerUpLeft.x *H[6] + cornerUpLeft.y*H[7] + cornerUpLeft.z*H[8]
+								};
+			
+			transUpLeft.x /= transUpLeft.z;
+			transUpLeft.y /= transUpLeft.z;
+			
+			
+			xyz transUpRight = {
+									cornerUpRight.x *H[0] + cornerUpRight.y*H[1] + cornerUpRight.z*H[2],
+									cornerUpRight.x *H[3] + cornerUpRight.y*H[4] + cornerUpRight.z*H[5],
+									cornerUpRight.x *H[6] + cornerUpRight.y*H[7] + cornerUpRight.z*H[8]
+								};
+			transUpRight.x /= transUpRight.z;
+			transUpRight.y /= transUpRight.z;
+			
+			xyz transDownLeft = {
+									cornerDownLeft.x *H[0] + cornerDownLeft.y*H[1] + cornerDownLeft.z*H[2],
+									cornerDownLeft.x *H[3] + cornerDownLeft.y*H[4] + cornerDownLeft.z*H[5],
+									cornerDownLeft.x *H[6] + cornerDownLeft.y*H[7] + cornerDownLeft.z*H[8]
+								};
+			transDownLeft.x /= transDownLeft.z;
+			transDownLeft.y /= transDownLeft.z;
+			
+			xyz transDownRight = {
+									cornerDownRight.x *H[0] + cornerDownRight.y*H[1] + cornerDownRight.z*H[2],
+									cornerDownRight.x *H[3] + cornerDownRight.y*H[4] + cornerDownRight.z*H[5],
+									cornerDownRight.x *H[6] + cornerDownRight.y*H[7] + cornerDownRight.z*H[8]
+								};
+			transDownRight.x /= transDownRight.z;
+			transDownRight.y /= transDownRight.z;
+			
+			
+			lineBresenham(transUpLeft.x, transUpLeft.y, transUpRight.x, transUpRight.y, data, bitmapBytesPerRow);
+			lineBresenham(transUpLeft.x, transUpLeft.y, transDownLeft.x, transDownLeft.y, data, bitmapBytesPerRow);
+			lineBresenham(transDownRight.x, transDownRight.y, transDownLeft.x, transDownLeft.y, data, bitmapBytesPerRow);
+			lineBresenham(transDownRight.x, transDownRight.y, transUpRight.x, transUpRight.y, data, bitmapBytesPerRow);
+			 
+			
+		}
+		
+		
 		for(NSNumber *index in bestBin){
+
 			for(int i = -5; i<5; i++){
 				for(int j = -5; j<5; j++){
 					int dataIndex = i + cornersList[[index intValue]].x + bitmapBytesPerRow*(j + cornersList[[index intValue]].y);
@@ -647,7 +730,6 @@
 	if(!opQueue){
 		opQueue = [[NSOperationQueue alloc] init];
 	}
-	NSLog(@"Number of views:%d", [[ghostView subviews] count]);
 	[[ghostView subviews] makeObjectsPerformSelector: @selector(removeFromSuperview)];
 	
 	[self clearDatabase];

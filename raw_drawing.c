@@ -21,7 +21,9 @@ void lineBresenham(int x0, int y0, int x1, int y1, unsigned char* data, int bitm
 	dy <<= 1;                                                  // dy is now 2*dy
 	dx <<= 1;                                                  // dx is now 2*dx
 	
-	data[x0 + bitmapBytesPerRow * y0] = pix;
+	if(x0 < bitmapBytesPerRow && y0 < 400 && x0 > 0 && y0 > 0){
+		data[x0 + bitmapBytesPerRow * y0] = pix;
+	}
 	
 	if (dx > dy) {
 		int fraction = dy - (dx >> 1);                         // same as 2*dy - dx
@@ -32,7 +34,9 @@ void lineBresenham(int x0, int y0, int x1, int y1, unsigned char* data, int bitm
 			}
 			x0 += stepx;
 			fraction += dy;                                    // same as fraction -= 2*dy
-			data[x0 + bitmapBytesPerRow * y0] = pix;
+			if(x0 < bitmapBytesPerRow && y0 < 400 && x0 > 0 && y0 > 0){
+				data[x0 + bitmapBytesPerRow * y0] = pix;
+			}
 		}
 	} else {
 		int fraction = dx - (dy >> 1);
@@ -43,7 +47,9 @@ void lineBresenham(int x0, int y0, int x1, int y1, unsigned char* data, int bitm
 			}
 			y0 += stepy;
 			fraction += dx;
-			data[x0 + bitmapBytesPerRow * y0] = pix;
+			if(x0 < bitmapBytesPerRow && y0 < 400 && x0 > 0 && y0 > 0){
+				data[x0 + bitmapBytesPerRow * y0] = pix;
+			}
 		}
 	}
 }
