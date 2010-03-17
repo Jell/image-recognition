@@ -14,131 +14,6 @@
 
 // -------------------Training------------------------------------------------------------------------------------------
 
-
--(xyz)transformXYZ:(xyz)input with:(CATransform3D)t{
-	float dx = input.x;
-	float dy = input.y;
-	float dz = input.z;
-	
-	float fx = t.m11 * dx + t.m12*dy + t.m13 * dz + t.m14;
-	float fy = t.m21 * dx + t.m22*dy + t.m23 * dz + t.m24;
-	float fz = t.m31 * dx + t.m32*dy + t.m33 * dz + t.m34;
-	float fw = t.m41 * dx + t.m42*dy + t.m43 * dz + t.m44;
-	
-	xyz result;
-	result.x = fx/fw;
-	result.y = fy/fw;
-	result.z = fz/fw;
-	return result;
-}
-
--(xyz)findZforXY:(xyz)input fromA:(xyz)pointA B:(xyz)pointB C:(xyz)pointC{
-	
-	float a = input.x - pointA.x;
-	float b = input.y - pointA.y;
-	//float c = input.z - pointA.z;
-	float d = pointB.x - pointA.x;
-	float e = pointB.y - pointA.y;
-	float f = pointB.z - pointA.z;
-	float g = pointC.x - pointA.x;
-	float h = pointC.y - pointA.y;
-	float i = pointC.z - pointA.z;
-	
-	
-	float z = pointA.z + (a*e*i+b*f*g-a*f*h-b*d*i)/(e*g-d*h);
-	xyz result = {input.x, input.y, z};
-	return result;
-}
-
--(void)finalize{
-	
-	NSString *entityName = @"FeaturePoint";
-	
-	NSFetchRequest *request = [[NSFetchRequest alloc] init];
-	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
-	[request setEntity:entity];
-	[request setFetchLimit:FEATUREPOINTS_NUMBER];
-	
-	NSString *sortKey = @"number";
-	BOOL sortAscending = NO;
-	NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:sortKey ascending:sortAscending];
-	NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
-	[request setSortDescriptors:sortDescriptors];
-	[sortDescriptors release];
-	[sortDescriptor release];
-	
-	NSError *error;
-	
-	NSMutableArray *mutableFetchResults = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
-	
-	int size = [mutableFetchResults count];
-	
-	for(int i = 0; i< size; i++){
-		NSManagedObject *featurepoint = [mutableFetchResults objectAtIndex:i];
-		int x = [[featurepoint valueForKey:@"x"] intValue];
-		int y = [[featurepoint valueForKey:@"y"] intValue];
-		int teta = [[featurepoint valueForKey:@"teta"] intValue];
-		// Get the histogram values
-		NSSet *histograms = [featurepoint valueForKey:@"histograms"];
-		
-		float number = [[featurepoint valueForKey:@"number"] floatValue];
-		//NSLog(@"%@", histograms);
-		
-		BOOL quantizedSamples[64][5];
-		
-		for(NSManagedObject *histogram in histograms){
-			int index = [[histogram valueForKey:@"index"] intValue];
-			
-			for(int k = 0; k<5; k++){
-				NSString *key = [NSString stringWithFormat:@"Range%d",k+1];
-				float ratio = [[histogram valueForKey:key] floatValue] / number;
-				quantizedSamples[index][k] = (ratio > 0.05);
-			}
-		}
-		
-		long long R1 = 0;
-		long long R2 = 0;
-		long long R3 = 0;
-		long long R4 = 0;
-		long long R5 = 0;
-		for(int k = 0; k<64; k++){
-			R1 <<= 1;
-			R1 |= quantizedSamples[k][0];
-			
-			R2 <<= 1;
-			R2 |= quantizedSamples[k][1];
-			
-			R3 <<= 1;
-			R3 |= quantizedSamples[k][2];
-			
-			R4 <<= 1;
-			R4 |= quantizedSamples[k][3];
-			
-			R5 <<= 1;
-			R5 |= quantizedSamples[k][4];
-		}
-		[self addHIP:x Y:y teta:teta R1:R1 R2:R2 R3:R3 R4:R4 R5:R5];
-	}
-	[request release];
-	
-	[self genertateHipList];
-}
-
--(void)genertateHipList{
-	NSString *entityName = @"HIP";
-	
-	NSFetchRequest *request = [[NSFetchRequest alloc] init];
-	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
-	[request setEntity:entity];
-	[request setFetchLimit:0];
-	
-	NSError *error;
-	
-	hipList = [[[managedObjectContext executeFetchRequest:request error:&error] mutableCopy] retain];
-	[request release];
-	
-}
-
 - (IBAction)train:(id)sender{
 	IMAGESIZE = [trainingImageSize intValue];
 	ITERATIONNUMBER = [trainingViewNumber intValue];
@@ -164,6 +39,82 @@
 	NSInvocationOperation *request = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(runTraining:) object:self];
 	[opQueue addOperation:request];
 	[request release];
+	
+}
+
+-(void)runTraining:(id)object{
+	
+	for(indexX = 0; indexX<ITERATIONNUMBER; indexX++){
+		for(indexY = 0; indexY < ITERATIONNUMBER; indexY++){
+			NSNumber *progressValue = [NSNumber numberWithDouble:100*((double)indexX*ITERATIONNUMBER + (double)(indexY+1))/(ITERATIONNUMBER*ITERATIONNUMBER)];
+			[self performSelectorOnMainThread:@selector(updateProgress:) withObject:progressValue waitUntilDone:YES];
+			
+			CIImage *ghostbusters = referenceImage;
+			
+			CIFilter *filter = [CIFilter filterWithName:@"CIPerspectiveTransform"];
+			[filter setDefaults];
+			[filter setValue:ghostbusters forKey:@"inputImage"];
+			
+			CATransform3D t = CATransform3DIdentity;
+			t = CATransform3DRotate(t, -M_PI/4 + (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
+			t = CATransform3DRotate(t, -M_PI/4 + (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
+			
+			upLeft.x = -IMAGESIZE/2;
+			upLeft.y = IMAGESIZE/2;
+			upLeft.z = 0;
+			
+			upRight.x = IMAGESIZE/2;
+			upRight.y = IMAGESIZE/2;
+			upRight.z = 0;
+			
+			downLeft.x = -IMAGESIZE/2;
+			downLeft.y = -IMAGESIZE/2;
+			downLeft.z = 0;
+			
+			downRight.x = IMAGESIZE/2;
+			downRight.y = -IMAGESIZE/2;
+			downRight.z = 0;
+			
+			upLeft = [self transformXYZ:upLeft with:t];
+			upRight = [self transformXYZ:upRight with:t];
+			downLeft = [self transformXYZ:downLeft with:t];
+			downRight = [self transformXYZ:downRight with:t];
+			
+			t = CATransform3DIdentity;
+			t = CATransform3DRotate(t, M_PI/4 - (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
+			t = CATransform3DRotate(t, M_PI/4 - (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
+			
+			inverseTransform = t;
+			
+			[filter setValue:[CIVector vectorWithX:upLeft.x
+												 Y:upLeft.y
+							  ] forKey:@"inputTopLeft"];
+			
+			[filter setValue:[CIVector vectorWithX:upRight.x
+												 Y:upRight.y
+							  ] forKey:@"inputTopRight"];
+			
+			[filter setValue:[CIVector vectorWithX:downLeft.x
+												 Y:downLeft.y
+							  ] forKey:@"inputBottomLeft"];
+			
+			[filter setValue:[CIVector vectorWithX:downRight.x
+												 Y:downRight.y
+							  ] forKey:@"inputBottomRight"];
+			
+			CIImage *perspective = [filter valueForKey:@"outputImage"];
+			
+			CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
+			[filter2 setDefaults];
+			[filter2 setValue:perspective forKey:@"inputImage"];
+			[filter2 setValue:[NSNumber numberWithFloat:(0.5 + 1.5 * (float)random()/RAND_MAX)] forKey:@"inputRadius"];
+			CIImage *outputImage = [filter2 valueForKey:@"outputImage"];
+			[self processImageTraining:outputImage];
+			
+		}
+	}
+	[self finalize];
+	[self printDatabase];
 	
 }
 
@@ -308,89 +259,136 @@
 	if (data) { free(data); }
 }
 
+-(void)finalize{
+	
+	NSString *entityName = @"FeaturePoint";
+	
+	NSFetchRequest *request = [[NSFetchRequest alloc] init];
+	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
+	[request setEntity:entity];
+	[request setFetchLimit:FEATUREPOINTS_NUMBER];
+	
+	NSString *sortKey = @"number";
+	BOOL sortAscending = NO;
+	NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:sortKey ascending:sortAscending];
+	NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
+	[request setSortDescriptors:sortDescriptors];
+	[sortDescriptors release];
+	[sortDescriptor release];
+	
+	NSError *error;
+	
+	NSMutableArray *mutableFetchResults = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
+	
+	int size = [mutableFetchResults count];
+	
+	for(int i = 0; i< size; i++){
+		NSManagedObject *featurepoint = [mutableFetchResults objectAtIndex:i];
+		int x = [[featurepoint valueForKey:@"x"] intValue];
+		int y = [[featurepoint valueForKey:@"y"] intValue];
+		int teta = [[featurepoint valueForKey:@"teta"] intValue];
+		// Get the histogram values
+		NSSet *histograms = [featurepoint valueForKey:@"histograms"];
+		
+		float number = [[featurepoint valueForKey:@"number"] floatValue];
+		//NSLog(@"%@", histograms);
+		
+		BOOL quantizedSamples[64][5];
+		
+		for(NSManagedObject *histogram in histograms){
+			int index = [[histogram valueForKey:@"index"] intValue];
+			
+			for(int k = 0; k<5; k++){
+				NSString *key = [NSString stringWithFormat:@"Range%d",k+1];
+				float ratio = [[histogram valueForKey:key] floatValue] / number;
+				quantizedSamples[index][k] = (ratio > 0.05);
+			}
+		}
+		
+		long long R1 = 0;
+		long long R2 = 0;
+		long long R3 = 0;
+		long long R4 = 0;
+		long long R5 = 0;
+		for(int k = 0; k<64; k++){
+			R1 <<= 1;
+			R1 |= quantizedSamples[k][0];
+			
+			R2 <<= 1;
+			R2 |= quantizedSamples[k][1];
+			
+			R3 <<= 1;
+			R3 |= quantizedSamples[k][2];
+			
+			R4 <<= 1;
+			R4 |= quantizedSamples[k][3];
+			
+			R5 <<= 1;
+			R5 |= quantizedSamples[k][4];
+		}
+		[self addHIP:x Y:y teta:teta R1:R1 R2:R2 R3:R3 R4:R4 R5:R5];
+	}
+	[request release];
+	
+	[self genertateHipList];
+}
+
+-(void)genertateHipList{
+	NSString *entityName = @"HIP";
+	
+	NSFetchRequest *request = [[NSFetchRequest alloc] init];
+	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
+	[request setEntity:entity];
+	[request setFetchLimit:0];
+	
+	NSError *error;
+	
+	hipList = [[[managedObjectContext executeFetchRequest:request error:&error] mutableCopy] retain];
+	[request release];
+	
+}
+
+-(xyz)transformXYZ:(xyz)input with:(CATransform3D)t{
+	float dx = input.x;
+	float dy = input.y;
+	float dz = input.z;
+	
+	float fx = t.m11 * dx + t.m12*dy + t.m13 * dz + t.m14;
+	float fy = t.m21 * dx + t.m22*dy + t.m23 * dz + t.m24;
+	float fz = t.m31 * dx + t.m32*dy + t.m33 * dz + t.m34;
+	float fw = t.m41 * dx + t.m42*dy + t.m43 * dz + t.m44;
+	
+	xyz result;
+	result.x = fx/fw;
+	result.y = fy/fw;
+	result.z = fz/fw;
+	return result;
+}
+
+-(xyz)findZforXY:(xyz)input fromA:(xyz)pointA B:(xyz)pointB C:(xyz)pointC{
+	
+	float a = input.x - pointA.x;
+	float b = input.y - pointA.y;
+	//float c = input.z - pointA.z;
+	float d = pointB.x - pointA.x;
+	float e = pointB.y - pointA.y;
+	float f = pointB.z - pointA.z;
+	float g = pointC.x - pointA.x;
+	float h = pointC.y - pointA.y;
+	float i = pointC.z - pointA.z;
+	
+	
+	float z = pointA.z + (a*e*i+b*f*g-a*f*h-b*d*i)/(e*g-d*h);
+	xyz result = {input.x, input.y, z};
+	return result;
+}
+
 -(void)updateProgress:(id)object{
 	NSNumber *value = (NSNumber *)object;
 	[mProgressIndicator setMinValue:0];
 	[mProgressIndicator setMaxValue:100.0];
 	[mProgressIndicator setDoubleValue:[value doubleValue]];
 }
-
--(void)runTraining:(id)object{
-	
-	for(indexX = 0; indexX<ITERATIONNUMBER; indexX++){
-		for(indexY = 0; indexY < ITERATIONNUMBER; indexY++){
-			NSNumber *progressValue = [NSNumber numberWithDouble:100*((double)indexX*ITERATIONNUMBER + (double)(indexY+1))/(ITERATIONNUMBER*ITERATIONNUMBER)];
-			[self performSelectorOnMainThread:@selector(updateProgress:) withObject:progressValue waitUntilDone:YES];
-			
-			CIImage *ghostbusters = referenceImage;
-			
-			CIFilter *filter = [CIFilter filterWithName:@"CIPerspectiveTransform"];
-			[filter setDefaults];
-			[filter setValue:ghostbusters forKey:@"inputImage"];
-			
-			CATransform3D t = CATransform3DIdentity;
-			t = CATransform3DRotate(t, -M_PI/4 + (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
-			t = CATransform3DRotate(t, -M_PI/4 + (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
-			
-			upLeft.x = -IMAGESIZE/2;
-			upLeft.y = IMAGESIZE/2;
-			upLeft.z = 0;
-			
-			upRight.x = IMAGESIZE/2;
-			upRight.y = IMAGESIZE/2;
-			upRight.z = 0;
-			
-			downLeft.x = -IMAGESIZE/2;
-			downLeft.y = -IMAGESIZE/2;
-			downLeft.z = 0;
-			
-			downRight.x = IMAGESIZE/2;
-			downRight.y = -IMAGESIZE/2;
-			downRight.z = 0;
-			
-			upLeft = [self transformXYZ:upLeft with:t];
-			upRight = [self transformXYZ:upRight with:t];
-			downLeft = [self transformXYZ:downLeft with:t];
-			downRight = [self transformXYZ:downRight with:t];
-			
-			t = CATransform3DIdentity;
-			t = CATransform3DRotate(t, M_PI/4 - (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
-			t = CATransform3DRotate(t, M_PI/4 - (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
-			
-			inverseTransform = t;
-			
-			[filter setValue:[CIVector vectorWithX:upLeft.x
-												 Y:upLeft.y
-							  ] forKey:@"inputTopLeft"];
-			
-			[filter setValue:[CIVector vectorWithX:upRight.x
-												 Y:upRight.y
-							  ] forKey:@"inputTopRight"];
-			
-			[filter setValue:[CIVector vectorWithX:downLeft.x
-												 Y:downLeft.y
-							  ] forKey:@"inputBottomLeft"];
-			
-			[filter setValue:[CIVector vectorWithX:downRight.x
-												 Y:downRight.y
-							  ] forKey:@"inputBottomRight"];
-			
-			CIImage *perspective = [filter valueForKey:@"outputImage"];
-			
-			CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
-			[filter2 setDefaults];
-			[filter2 setValue:perspective forKey:@"inputImage"];
-			[filter2 setValue:[NSNumber numberWithFloat:(0.5 + 1.5 * (float)random()/RAND_MAX)] forKey:@"inputRadius"];
-			CIImage *outputImage = [filter2 valueForKey:@"outputImage"];
-			[self processImageTraining:outputImage];
-			
-		}
-	}
-	[self finalize];
-	[self printDatabase];
-	
-}
-
 
 // --------------------Realtime------------------------------------------------------------------------
 
@@ -481,7 +479,7 @@
 	//return outputImage;
 }
 
--(BOOL)testSampleGrid:(float *)sampleGrid x:(int *)x y:(int *)y teta:(int *)teta{
+- (BOOL)testSampleGrid:(float *)sampleGrid x:(int *)x y:(int *)y teta:(int *)teta{
 	long long R1 = 0;
 	long long R2 = 0;
 	long long R3 = 0;
@@ -683,13 +681,35 @@
 				pts1[k][1] = cornersList[index].y;
 			}
 			
-			//int cstfunc=HOMEST_SYM_XFER_ERROR; // use the symmetric transfer error
-			//cstfunc=HOMEST_XFER_ERROR; // use the transfer error in 2nd image
-			//cstfunc=HOMEST_SAMPSON_ERROR; //use the Sampson error
-			int cstfunc=HOMEST_REPR_ERROR; // use the reprojection error
-			//cstfunc=HOMEST_NO_NLN_REFINE; // no refinement
-			//homest(pts1, pts0, npts, INL_PCENT, H, donorm, cstfunc, outidx, &noutl, 1);
-			homestaff(pts0, pts1, npts, INL_PCENT, H, donorm, outidx, &noutl, 1);
+			int cstfunc=HOMEST_NO_NLN_REFINE;
+			BOOL isAffine = NO;
+			switch([realtimeHomographyType selectedRow]){
+				case 0:
+					cstfunc=HOMEST_SYM_XFER_ERROR;
+					break;
+				case 1:
+					cstfunc=HOMEST_XFER_ERROR;
+					break;
+				case 2:
+					cstfunc=HOMEST_SAMPSON_ERROR;
+					break;
+				case 3:
+					cstfunc=HOMEST_REPR_ERROR;
+					break;
+				case 4:
+					cstfunc=HOMEST_NO_NLN_REFINE;
+					break;
+				case 5:
+					isAffine = YES;
+					break;
+
+			}
+			
+			if(isAffine){
+				homestaff(pts0, pts1, npts, INL_PCENT, H, donorm, outidx, &noutl, 1);
+			}else{
+				homest(pts0, pts1, npts, INL_PCENT, H, donorm, cstfunc, outidx, &noutl, 1);
+			}
 			
 			xyz cornerUpLeft = {0,IMAGESIZE,1};
 			xyz cornerUpRight = {IMAGESIZE,IMAGESIZE,1};
