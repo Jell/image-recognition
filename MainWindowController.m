@@ -10,186 +10,10 @@
 #import "raw_drawing.h"
 #import "hip_calculus.h"
 
-#define GRIDSIZE				70
-#define IMAGESIZE				200
-#define ITERATIONNUMBER			10
-#define FEATUREPOINTS_NUMBER	100
-#define ACCEPT_THRESHOLD		63
-#define INL_PCENT 0.7
-
 @implementation MainWindowController
 
--(void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta samples:(float *)samples{
-	NSManagedObject *afeaturepoint = [self fetchFeaturePointX:x Y:y teta:teta];
-	
-	if(afeaturepoint == nil){
-		afeaturepoint = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"FeaturePoint" inManagedObjectContext:[self managedObjectContext]];
-		[afeaturepoint setValue:[NSNumber numberWithInt:x] forKey:@"x"];
-		[afeaturepoint setValue:[NSNumber numberWithInt:y] forKey:@"y"];
-		[afeaturepoint setValue:[NSNumber numberWithInt:teta] forKey:@"teta"];
-		
-		NSMutableArray *histogramList = [[NSMutableArray alloc] initWithCapacity:64];
-		for(int i = 0; i < 64; i++){
-			NSManagedObject *ahistogram = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"Histogram" inManagedObjectContext:[self managedObjectContext]];
-			[ahistogram setValue:afeaturepoint forKey:@"featurePoint"];
-			[ahistogram setValue:[NSNumber numberWithInt:i] forKey:@"index"];
-			[histogramList addObject:ahistogram];
-		}
-		[afeaturepoint setValue:[NSSet setWithArray:histogramList] forKey:@"histograms"];
-	}
-	int n = [(NSNumber *)[afeaturepoint valueForKey:@"number"] intValue] + 1;
-	[afeaturepoint setValue:[NSNumber numberWithInt:n] forKey:@"number"];
-	NSSet *histograms = [afeaturepoint valueForKey:@"histograms"];
-	//NSLog(@"%@", histograms);
-	for(NSManagedObject *histogram in histograms){
-		int index = [[histogram valueForKey:@"index"] intValue];
-		float value = samples[index];
-		NSString *key = @"Range4";
-		if(value <-0.75){
-			key = @"Range1";
-		}else if(value >0.75){
-			key = @"Range5";
-		}else if(value >= -0.75 && value < -0.25){
-			key = @"Range2";
-		}else if(value >= -0.25 && value < 0.25){
-			key = @"Range3";
-		}
-		
-		int n = [(NSNumber *)[histogram valueForKey:key] intValue] + 1;
-		[histogram setValue:[NSNumber numberWithInt:n] forKey:key];
-		//NSLog(@"%@", [histogram valueForKey:@"index"]);
-	}
-	//NSLog(@"Size :%d", [histograms count]);
-}
+// -------------------Training------------------------------------------------------------------------------------------
 
--(void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(long long)R1 R2:(long long)R2 R3:(long long)R3 R4:(long long)R4 R5:(long long)R5{
-	NSManagedObject *anHIP = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"HIP" inManagedObjectContext:[self managedObjectContext]];
-	[anHIP setValue:[NSNumber numberWithInt:x] forKey:@"x"];
-	[anHIP setValue:[NSNumber numberWithInt:y] forKey:@"y"];
-	[anHIP setValue:[NSNumber numberWithInt:teta] forKey:@"teta"];
-	[anHIP setValue:[NSNumber numberWithLongLong:R1] forKey:@"R1"];
-	[anHIP setValue:[NSNumber numberWithLongLong:R2] forKey:@"R2"];
-	[anHIP setValue:[NSNumber numberWithLongLong:R3] forKey:@"R3"];
-	[anHIP setValue:[NSNumber numberWithLongLong:R4] forKey:@"R4"];
-	[anHIP setValue:[NSNumber numberWithLongLong:R5] forKey:@"R5"];
-}
-
--(NSManagedObject *)fetchFeaturePointX:(int)x Y:(int)y teta:(int)teta{
-	NSString *entityName = @"FeaturePoint";
-	NSPredicate *predicate = [NSPredicate predicateWithFormat:@"(x BETWEEN { %d , %d }) AND (y BETWEEN { %d , %d }) AND (teta BETWEEN { %d , %d })", x-1, x+1, y-1, y+1, teta-5, teta+5];
-	NSString *sortKey = @"number";
-	BOOL sortAscending = NO;
-	
-	NSFetchRequest *request = [[NSFetchRequest alloc] init];
-	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
-	[request setEntity:entity];
-	[request setPredicate:predicate];
-	[request setFetchLimit:1];
-	
-	NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:sortKey ascending:sortAscending];
-	NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
-	[request setSortDescriptors:sortDescriptors];
-	[sortDescriptors release];
-	[sortDescriptor release];
-	
-	
-	NSError *error;
-	
-	NSMutableArray *mutableFetchResults = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
-	
-	NSManagedObject *result = nil;
-	
-	for(NSManagedObject *object in mutableFetchResults){
-		result = object;
-	}
-	[request release];
-	
-	return result;
-}
-
--(void)printDatabase{
-	NSString *entityName = @"HIP";
-	
-	NSFetchRequest *request = [[NSFetchRequest alloc] init];
-	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
-	[request setEntity:entity];
-	[request setFetchLimit:0];
-	/*
-	NSString *sortKey = @"number";
-	BOOL sortAscending = NO;
-	NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:sortKey ascending:sortAscending];
-	NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
-	[request setSortDescriptors:sortDescriptors];
-	[sortDescriptors release];
-	[sortDescriptor release];
-	*/
-	NSError *error;
-	
-	NSMutableArray *mutableFetchResults = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
-
-	for(NSManagedObject *object in mutableFetchResults){
-			NSPoint origin = {[[object valueForKey:@"x"] intValue]*2-16,[[object valueForKey:@"y"] intValue]*2-16};
-			NSSize size = {32, 32};
-			NSRect rect = {origin, size};
-			NSImage *square = [NSImage imageNamed:@"square.jpg"];
-			NSImageView *squareView = [[NSImageView alloc] initWithFrame:rect];
-			[squareView setBoundsRotation:[[object valueForKey:@"teta"] floatValue]];
-			[squareView setImage:square];
-			[ghostView addSubview:squareView];
-			NSLog(@"%@", object);
-	}
-	NSLog(@"Number of entries: %d", [mutableFetchResults count]);
-	[request release];
-}
-
--(void)clearDatabase{
-	NSManagedObjectContext * context = [self managedObjectContext];
-	NSFetchRequest * fetch = [[[NSFetchRequest alloc] init] autorelease];
-	[fetch setEntity:[NSEntityDescription entityForName:@"FeaturePoint" inManagedObjectContext:context]];
-	NSArray * result = [context executeFetchRequest:fetch error:nil];
-	for (id basket in result)
-		[context deleteObject:basket];
-	
-	[fetch setEntity:[NSEntityDescription entityForName:@"Histogram" inManagedObjectContext:context]];
-	result = [context executeFetchRequest:fetch error:nil];
-	for (id object in result)
-		[context deleteObject:object];
-	
-	[fetch setEntity:[NSEntityDescription entityForName:@"HIP" inManagedObjectContext:context]];
-	result = [context executeFetchRequest:fetch error:nil];
-	for (id object in result)
-		[context deleteObject:object];
-}
-
-- (IBAction)start:(id)sender{
-	
-	if(!mCaptureSession){
-		[mCaptureView setDelegate:self];
-		
-		mCaptureSession = [[QTCaptureSession alloc] init];
-		
-		BOOL success = NO;
-		NSError *error;
-		
-		// Find a video device  
-		
-		QTCaptureDevice *videoDevice = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
-		success = [videoDevice open:&error];
-		
-		mCaptureVideoDeviceInput = [[QTCaptureDeviceInput alloc] initWithDevice:videoDevice];
-		success = [mCaptureSession addInput:mCaptureVideoDeviceInput error:&error];
-		
-		[mCaptureView setCaptureSession:mCaptureSession];
-	}
-	// Start capturing
-	[mCaptureSession startRunning];
-	
-	
-}
-
-- (IBAction)stop:(id)sender{	
-	[mCaptureSession stopRunning];
-}
 
 -(xyz)transformXYZ:(xyz)input with:(CATransform3D)t{
 	float dx = input.x;
@@ -271,7 +95,7 @@
 				quantizedSamples[index][k] = (ratio > 0.05);
 			}
 		}
-
+		
 		long long R1 = 0;
 		long long R2 = 0;
 		long long R3 = 0;
@@ -307,7 +131,7 @@
 	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
 	[request setEntity:entity];
 	[request setFetchLimit:0];
-
+	
 	NSError *error;
 	
 	hipList = [[[managedObjectContext executeFetchRequest:request error:&error] mutableCopy] retain];
@@ -315,7 +139,299 @@
 	
 }
 
+- (IBAction)train:(id)sender{
+	IMAGESIZE = [trainingImageSize intValue];
+	ITERATIONNUMBER = [trainingViewNumber intValue];
+	FEATUREPOINTS_NUMBER = [trainingFeatureNumber intValue];
+	MINIMUM_CONTRAST_TRAINING = [trainingContrast intValue];
+	
+	if(!opQueue){
+		opQueue = [[NSOperationQueue alloc] init];
+	}
+	[[ghostView subviews] makeObjectsPerformSelector: @selector(removeFromSuperview)];
+	
+	[self clearDatabase];
+	[self printDatabase];
+	indexX = 0;
+	indexY = 0;
+	NSImage * image    = [ghostView image];
+	NSData  * tiffData = [image TIFFRepresentation];
+	NSBitmapImageRep * bitmap;
+	bitmap = [NSBitmapImageRep imageRepWithData:tiffData];
+	
+	referenceImage = [[CIImage alloc] initWithBitmapImageRep:bitmap];
+	
+	NSInvocationOperation *request = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(runTraining:) object:self];
+	[opQueue addOperation:request];
+	[request release];
+	
+}
+
+- (void)processImageTraining:(CIImage *)image{
+	
+	NSBitmapImageRep* rep = [[[NSBitmapImageRep alloc] initWithCIImage:image] autorelease];
+	CGImageRef inImage = rep.CGImage;
+	
+	CGContextRef    context = NULL;
+	CGColorSpaceRef colorSpace;
+	void *          bitmapData;
+	int             bitmapByteCount;
+	int             bitmapBytesPerRow;
+	
+	// Get image width, height. We'll use the entire image.
+	size_t pixelsWide = CGImageGetWidth(inImage);
+	size_t pixelsHigh = CGImageGetHeight(inImage);
+	
+	// Declare the number of bytes per row. Each pixel in the bitmap in this
+	// example is represented by 1 byte of grey
+	bitmapBytesPerRow   = (pixelsWide);
+	bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
+	
+	// Use the generic RGB color space.
+	colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+	if (colorSpace == NULL)
+	{
+		fprintf(stderr, "Error allocating color space\n");
+		return;
+	}
+	
+	// Allocate memory for image data. This is the destination in memory
+	// where any drawing to the bitmap context will be rendered.
+	bitmapData = malloc( bitmapByteCount );
+	if (bitmapData == NULL)
+	{
+		fprintf (stderr, "Memory not allocated!");
+		CGColorSpaceRelease( colorSpace );
+		return;
+	}
+	
+	// Create the bitmap context. We want pre-multiplied ARGB, 8-bits
+	// per component. Regardless of what the source image format is
+	// (CMYK, Grayscale, and so on) it will be converted over to the format
+	// specified here by CGBitmapContextCreate.
+	context = CGBitmapContextCreate (bitmapData,
+									 pixelsWide,
+									 pixelsHigh,
+									 8,      // bits per component
+									 bitmapBytesPerRow,
+									 colorSpace,
+									 kCGImageAlphaNone);
+	if (context == NULL)
+	{
+		free (bitmapData);
+		fprintf (stderr, "Context not created!");
+		return;
+	}
+	
+	CGRect rect2 = {{0,0},{pixelsWide,pixelsHigh}}; 
+	
+	// Draw the image to the bitmap context. Once we draw, the memory
+	// allocated for the context for rendering will then contain the
+	// raw image data in the specified color space.
+	CGContextDrawImage(context, rect2, inImage); 
+	
+	// Now we can get a pointer to the image data associated with the bitmap
+	// context.
+	unsigned char* data = CGBitmapContextGetData(context);
+	
+	
+	if (data != NULL) {
+		int numcorners;
+		xy* cornersList;
+		xy* anglesList;
+		xy sampleGrid[64];
+		cornersList = fast9_detect_nonmax(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, MINIMUM_CONTRAST_TRAINING, &numcorners);
+		anglesList = fast9_angles(data, bitmapBytesPerRow, cornersList, numcorners);
+		for(int i = 0; i<numcorners; i++){
+			//data[cornersList[i].x + bitmapBytesPerRow * cornersList[i].y ] = 255;
+			
+			/*
+			 if(	(cornersList[i].x + anglesList[i].x > 0) &&
+			 (cornersList[i].x + anglesList[i].x < pixelsWide) &&
+			 (cornersList[i].y + anglesList[i].y > 0) &&
+			 (cornersList[i].y + anglesList[i].y < pixelsHigh)){
+			 lineBresenham(cornersList[i].x, cornersList[i].y, cornersList[i].x + anglesList[i].x,  cornersList[i].y + anglesList[i].y, data, bitmapBytesPerRow);
+			 }
+			 */
+			if(	(cornersList[i].x - 12 > 0) &&
+			   (cornersList[i].x + 12 < pixelsWide) &&
+			   (cornersList[i].y - 12 > 0) &&
+			   (cornersList[i].y + 12 < pixelsHigh)){
+				
+				
+				float x = (float)cornersList[i].x;
+				float y = (float)cornersList[i].y;
+				float offsetX = (float)pixelsWide / 2;
+				float offsetY = (float)pixelsHigh / 2;
+				
+				xyz center = {0.0,0.0,0.0};
+				xyz position = {x - offsetX, offsetY - y, 0};
+				xyz anglePosition = {position.x + (float)anglesList[i].x, position.y - (float)anglesList[i].y, 0};
+				
+				position = [self findZforXY:position fromA:center B:downRight C:upRight];
+				anglePosition = [self findZforXY:anglePosition fromA:center B:downRight C:upRight];
+				
+				
+				xyz realPosition = [self transformXYZ:position with:inverseTransform];
+				xyz angleRealPosition = [self transformXYZ:anglePosition with:inverseTransform];
+				
+				xy angle = {angleRealPosition.x - realPosition.x, angleRealPosition.y - realPosition.y};
+				
+				int xvalue = ((int)realPosition.x + IMAGESIZE/2);
+				int yvalue = ((int)realPosition.y + IMAGESIZE/2);
+				
+				if(xvalue > 20 && yvalue > 20 && xvalue<IMAGESIZE-20 && yvalue < IMAGESIZE-20){
+					float sampleValues[64];
+					setRotatedSampleGrid(sampleGrid, anglesList[i]);
+					for(int k =0; k<64; k++){
+						int index = sampleGrid[k].x + cornersList[i].x + bitmapBytesPerRow*(sampleGrid[k].y + cornersList[i].y);
+						sampleValues[k] = data[index];
+						data[index] = 255;
+					}
+					
+					equalize(sampleValues, 64);
+					//[self addFeaturePointX:xvalue Y:yvalue teta:0];
+					[self addFeaturePointX:xvalue Y:yvalue teta:getAngle(angle) samples:sampleValues];
+				}
+			}
+		}
+		
+		free(cornersList);
+		free(anglesList);
+		
+	}
+	
+	CGColorSpaceRelease( colorSpace );
+	// When finished, release the context
+	CGContextRelease(context);
+	// Free image data memory for the context
+	if (data) { free(data); }
+}
+
+-(void)updateProgress:(id)object{
+	NSNumber *value = (NSNumber *)object;
+	[mProgressIndicator setMinValue:0];
+	[mProgressIndicator setMaxValue:100.0];
+	[mProgressIndicator setDoubleValue:[value doubleValue]];
+}
+
+-(void)runTraining:(id)object{
+	
+	for(indexX = 0; indexX<ITERATIONNUMBER; indexX++){
+		for(indexY = 0; indexY < ITERATIONNUMBER; indexY++){
+			NSNumber *progressValue = [NSNumber numberWithDouble:100*((double)indexX*ITERATIONNUMBER + (double)(indexY+1))/(ITERATIONNUMBER*ITERATIONNUMBER)];
+			[self performSelectorOnMainThread:@selector(updateProgress:) withObject:progressValue waitUntilDone:YES];
+			
+			CIImage *ghostbusters = referenceImage;
+			
+			CIFilter *filter = [CIFilter filterWithName:@"CIPerspectiveTransform"];
+			[filter setDefaults];
+			[filter setValue:ghostbusters forKey:@"inputImage"];
+			
+			CATransform3D t = CATransform3DIdentity;
+			t = CATransform3DRotate(t, -M_PI/4 + (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
+			t = CATransform3DRotate(t, -M_PI/4 + (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
+			
+			upLeft.x = -IMAGESIZE/2;
+			upLeft.y = IMAGESIZE/2;
+			upLeft.z = 0;
+			
+			upRight.x = IMAGESIZE/2;
+			upRight.y = IMAGESIZE/2;
+			upRight.z = 0;
+			
+			downLeft.x = -IMAGESIZE/2;
+			downLeft.y = -IMAGESIZE/2;
+			downLeft.z = 0;
+			
+			downRight.x = IMAGESIZE/2;
+			downRight.y = -IMAGESIZE/2;
+			downRight.z = 0;
+			
+			upLeft = [self transformXYZ:upLeft with:t];
+			upRight = [self transformXYZ:upRight with:t];
+			downLeft = [self transformXYZ:downLeft with:t];
+			downRight = [self transformXYZ:downRight with:t];
+			
+			t = CATransform3DIdentity;
+			t = CATransform3DRotate(t, M_PI/4 - (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
+			t = CATransform3DRotate(t, M_PI/4 - (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
+			
+			inverseTransform = t;
+			
+			[filter setValue:[CIVector vectorWithX:upLeft.x
+												 Y:upLeft.y
+							  ] forKey:@"inputTopLeft"];
+			
+			[filter setValue:[CIVector vectorWithX:upRight.x
+												 Y:upRight.y
+							  ] forKey:@"inputTopRight"];
+			
+			[filter setValue:[CIVector vectorWithX:downLeft.x
+												 Y:downLeft.y
+							  ] forKey:@"inputBottomLeft"];
+			
+			[filter setValue:[CIVector vectorWithX:downRight.x
+												 Y:downRight.y
+							  ] forKey:@"inputBottomRight"];
+			
+			CIImage *perspective = [filter valueForKey:@"outputImage"];
+			
+			CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
+			[filter2 setDefaults];
+			[filter2 setValue:perspective forKey:@"inputImage"];
+			[filter2 setValue:[NSNumber numberWithFloat:(0.5 + 1.5 * (float)random()/RAND_MAX)] forKey:@"inputRadius"];
+			CIImage *outputImage = [filter2 valueForKey:@"outputImage"];
+			[self processImageTraining:outputImage];
+			
+		}
+	}
+	[self finalize];
+	[self printDatabase];
+	
+}
+
+
+// --------------------Realtime------------------------------------------------------------------------
+
+- (IBAction)start:(id)sender{
+	ACCEPT_THRESHOLD = [realtimeThreshold intValue];
+	INL_PCENT = [realtimeInlinerRatio floatValue];
+	
+	if(!mCaptureSession){
+		[mCaptureView setDelegate:self];
+		
+		mCaptureSession = [[QTCaptureSession alloc] init];
+		
+		BOOL success = NO;
+		NSError *error;
+		
+		// Find a video device  
+		
+		QTCaptureDevice *videoDevice = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
+		success = [videoDevice open:&error];
+		
+		mCaptureVideoDeviceInput = [[QTCaptureDeviceInput alloc] initWithDevice:videoDevice];
+		success = [mCaptureSession addInput:mCaptureVideoDeviceInput error:&error];
+		
+		[mCaptureView setCaptureSession:mCaptureSession];
+	}
+	// Start capturing
+	[mCaptureSession startRunning];
+	
+	
+}
+
+- (IBAction)stop:(id)sender{	
+	[mCaptureSession stopRunning];
+}
+
 - (CIImage *)view:(QTCaptureView *)view willDisplayImage:(CIImage *)image{
+	
+	ACCEPT_THRESHOLD = [realtimeThreshold intValue];
+	INL_PCENT = [realtimeInlinerRatio floatValue];
+	MINIMUM_CONTRAST_REALTIME = [realtimeContrast intValue];
+	BLURVALUE = [realtimeBlur floatValue];
 	
 	CIFilter *filter = [CIFilter filterWithName:@"CIPerspectiveTransform"];
 	[filter setDefaults];
@@ -354,7 +470,14 @@
 	
 	CIImage *output = [filter valueForKey:@"outputImage"];
 	
-	return [self processImage:output];
+	
+	CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
+	[filter2 setDefaults];
+	[filter2 setValue:output forKey:@"inputImage"];
+	[filter2 setValue:[NSNumber numberWithFloat:BLURVALUE] forKey:@"inputRadius"];
+	CIImage *outputImage = [filter2 valueForKey:@"outputImage"];
+	
+	return [self processImage:outputImage];
 	//return outputImage;
 }
 
@@ -473,13 +596,13 @@
 		xy* cornersList;
 		xy* anglesList;
 		xy sampleGrid[64];
-		cornersList = fast9_detect_nonmax(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, 20, &numcorners);
+		cornersList = fast9_detect_nonmax(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, MINIMUM_CONTRAST_REALTIME, &numcorners);
 		anglesList = fast9_angles(data, bitmapBytesPerRow, cornersList, numcorners);
 		xy *foundCorrespondances = (xy*)malloc(sizeof(xy)*numcorners);
-		NSMutableArray *arrayOfBins = [[NSMutableArray alloc] initWithCapacity:16];
+		NSMutableArray *arrayOfBins = [[[NSMutableArray alloc] initWithCapacity:16] retain];
 		
 		for(int i = 0; i< 16; i++){
-			NSMutableArray *histogram = [[NSMutableArray alloc] init];
+			NSMutableArray *histogram = [[[NSMutableArray alloc] init] retain];
 			[arrayOfBins addObject:histogram];
 		}
 		
@@ -506,15 +629,26 @@
 				
 				if([self testSampleGrid:sampleValues x:&matchX y:&matchY teta:&matchTeta]){
 					
-					int angleBin = (360 + getAngle(anglesList[i]) - matchTeta)%360;
+					int angleBin = (360 + (int)getAngle(anglesList[i]) - matchTeta)%360;
 			
+					NSLog(@"Match: %d, Angle: %d, AngleBine: %d", matchTeta, (int)getAngle(anglesList[i]), angleBin);
 					for(int n = 0; n<16; n++){
-						if(angleBin > 22.5 * n && angleBin < 22.5 *n + 30){
+						if(angleBin > 22.5 * n && angleBin < 22.5 *n + 45){
 							NSMutableArray *histogram = [arrayOfBins objectAtIndex:n];
-							[histogram addObject:[NSNumber numberWithInt:i]];
+							[histogram addObject:[[NSNumber numberWithInt:i] retain]];
 							foundCorrespondances[i].x = matchX;
 							foundCorrespondances[i].y = matchY;
 						}
+					}
+					
+					if([displayAllMatches state] == NSOnState){
+							
+							for(int ii = -5; ii<5; ii++){
+								for(int ij = -5; ij<5; ij++){
+									int dataIndex = ii + cornersList[i].x + bitmapBytesPerRow*(ij + cornersList[i].y);
+									data[dataIndex] = 125;
+								}
+							}
 					}
 				}
 			}
@@ -523,7 +657,7 @@
 		int bestBinSize = 0;
 		NSMutableArray *bestBin = nil;
 		for(NSMutableArray *histogram in arrayOfBins){
-			//NSLog(@"histogram");
+			NSLog(@"%@", histogram);
 			int histogramSize = [histogram count];
 			if(histogramSize > 5 && histogramSize > bestBinSize){
 				bestBinSize = histogramSize;
@@ -535,7 +669,8 @@
 			double (*pts0)[2], (*pts1)[2];
 			int npts, donorm, noutl, *outidx=NULL;
 			double H[NUM_HPARAMS];
-			
+			donorm=1;
+			outidx=(int *)malloc(npts*sizeof(int));
 			npts = bestBinSize;
 			pts0=(double (*)[2])malloc(npts*sizeof(double[2]));
 			pts1=(double (*)[2])malloc(npts*sizeof(double[2]));
@@ -546,14 +681,6 @@
 				pts0[k][1] = foundCorrespondances[index].y;
 				pts1[k][0] = cornersList[index].x; 
 				pts1[k][1] = cornersList[index].y;
-				
-				
-				for(int i = -5; i<5; i++){
-					for(int j = -5; j<5; j++){
-						int dataIndex = i + foundCorrespondances[index].x + bitmapBytesPerRow*(j + foundCorrespondances[index].y);
-						data[dataIndex] = 255;
-					}
-				}
 			}
 			
 			//int cstfunc=HOMEST_SYM_XFER_ERROR; // use the symmetric transfer error
@@ -561,8 +688,8 @@
 			//cstfunc=HOMEST_SAMPSON_ERROR; //use the Sampson error
 			int cstfunc=HOMEST_REPR_ERROR; // use the reprojection error
 			//cstfunc=HOMEST_NO_NLN_REFINE; // no refinement
-			homest(pts0, pts1, npts, INL_PCENT, H, donorm, cstfunc, outidx, &noutl, 1);
-			//homestaff(pts0, pts1, npts, INL_PCENT, H, donorm, outidx, &noutl, 1);
+			//homest(pts1, pts0, npts, INL_PCENT, H, donorm, cstfunc, outidx, &noutl, 1);
+			homestaff(pts0, pts1, npts, INL_PCENT, H, donorm, outidx, &noutl, 1);
 			
 			xyz cornerUpLeft = {0,IMAGESIZE,1};
 			xyz cornerUpRight = {IMAGESIZE,IMAGESIZE,1};
@@ -603,23 +730,33 @@
 			transDownRight.x /= transDownRight.z;
 			transDownRight.y /= transDownRight.z;
 			
-			
+			if([displayHomography state] == NSOnState){
 			lineBresenham(transUpLeft.x, transUpLeft.y, transUpRight.x, transUpRight.y, data, bitmapBytesPerRow);
 			lineBresenham(transUpLeft.x, transUpLeft.y, transDownLeft.x, transDownLeft.y, data, bitmapBytesPerRow);
 			lineBresenham(transDownRight.x, transDownRight.y, transDownLeft.x, transDownLeft.y, data, bitmapBytesPerRow);
 			lineBresenham(transDownRight.x, transDownRight.y, transUpRight.x, transUpRight.y, data, bitmapBytesPerRow);
-			 
+			}
+			
+
 			
 		}
 		
-		
-		for(NSNumber *index in bestBin){
+		if([displayViewBin state] == NSOnState){
+			for(NSNumber *index in bestBin){
 
 			for(int i = -5; i<5; i++){
 				for(int j = -5; j<5; j++){
 					int dataIndex = i + cornersList[[index intValue]].x + bitmapBytesPerRow*(j + cornersList[[index intValue]].y);
 					data[dataIndex] = 255;
 				}
+			}
+		}
+		}
+		
+		if([displayCorners state] == NSOnState){
+			for(int i = 0; i<numcorners; i++){
+				int index = cornersList[i].x + bitmapBytesPerRow*cornersList[i].y;
+				data[index] = 255;
 			}
 		}
 		
@@ -642,12 +779,9 @@
 	return outImage;
 }
 
-/**
- Returns the support folder for the application, used to store the Core Data
- store file.  This code uses a folder named "CoreData_Test" for
- the content, either in the NSApplicationSupportDirectory location or (if the
- former cannot be found), the system's temporary directory.
- */
+
+// ---------------------Database handling------------------------------------------------------------------------
+
 
 - (NSString *)applicationSupportFolder {
 	
@@ -655,11 +789,6 @@
     NSString *basePath = ([paths count] > 0) ? [paths objectAtIndex:0] : NSTemporaryDirectory();
     return [basePath stringByAppendingPathComponent:@"CoreData_Test"];
 }
-
-/**
- Creates, retains, and returns the managed object model for the application 
- by merging all of the models found in the application bundle.
- */
 
 - (NSManagedObjectModel *)managedObjectModel {
 	
@@ -670,14 +799,6 @@
     managedObjectModel = [[NSManagedObjectModel mergedModelFromBundles:nil] retain];    
     return managedObjectModel;
 }
-
-
-/**
- Returns the persistent store coordinator for the application.  This 
- implementation will create and return a coordinator, having added the 
- store for the application to it.  (The folder for the store is created, 
- if necessary.)
- */
 
 - (NSPersistentStoreCoordinator *) persistentStoreCoordinator {
 	
@@ -705,12 +826,6 @@
     return persistentStoreCoordinator;
 }
 
-
-/**
- Returns the managed object context for the application (which is already
- bound to the persistent store coordinator for the application.) 
- */
-
 - (NSManagedObjectContext *) managedObjectContext {
 	
     if (managedObjectContext != nil) {
@@ -726,252 +841,148 @@
     return managedObjectContext;
 }
 
-- (IBAction)train:(id)sender{
-	if(!opQueue){
-		opQueue = [[NSOperationQueue alloc] init];
+
+-(void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta samples:(float *)samples{
+	NSManagedObject *afeaturepoint = [self fetchFeaturePointX:x Y:y teta:teta];
+	
+	if(afeaturepoint == nil){
+		afeaturepoint = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"FeaturePoint" inManagedObjectContext:[self managedObjectContext]];
+		[afeaturepoint setValue:[NSNumber numberWithInt:x] forKey:@"x"];
+		[afeaturepoint setValue:[NSNumber numberWithInt:y] forKey:@"y"];
+		[afeaturepoint setValue:[NSNumber numberWithInt:teta] forKey:@"teta"];
+		
+		NSMutableArray *histogramList = [[NSMutableArray alloc] initWithCapacity:64];
+		for(int i = 0; i < 64; i++){
+			NSManagedObject *ahistogram = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"Histogram" inManagedObjectContext:[self managedObjectContext]];
+			[ahistogram setValue:afeaturepoint forKey:@"featurePoint"];
+			[ahistogram setValue:[NSNumber numberWithInt:i] forKey:@"index"];
+			[histogramList addObject:ahistogram];
+		}
+		[afeaturepoint setValue:[NSSet setWithArray:histogramList] forKey:@"histograms"];
 	}
-	[[ghostView subviews] makeObjectsPerformSelector: @selector(removeFromSuperview)];
+	int n = [(NSNumber *)[afeaturepoint valueForKey:@"number"] intValue] + 1;
+	[afeaturepoint setValue:[NSNumber numberWithInt:n] forKey:@"number"];
+	NSSet *histograms = [afeaturepoint valueForKey:@"histograms"];
+	//NSLog(@"%@", histograms);
+	for(NSManagedObject *histogram in histograms){
+		int index = [[histogram valueForKey:@"index"] intValue];
+		float value = samples[index];
+		NSString *key = @"Range4";
+		if(value <-0.75){
+			key = @"Range1";
+		}else if(value >0.75){
+			key = @"Range5";
+		}else if(value >= -0.75 && value < -0.25){
+			key = @"Range2";
+		}else if(value >= -0.25 && value < 0.25){
+			key = @"Range3";
+		}
+		
+		int n = [(NSNumber *)[histogram valueForKey:key] intValue] + 1;
+		[histogram setValue:[NSNumber numberWithInt:n] forKey:key];
+		//NSLog(@"%@", [histogram valueForKey:@"index"]);
+	}
+	//NSLog(@"Size :%d", [histograms count]);
+}
+
+-(void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(long long)R1 R2:(long long)R2 R3:(long long)R3 R4:(long long)R4 R5:(long long)R5{
+	NSManagedObject *anHIP = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"HIP" inManagedObjectContext:[self managedObjectContext]];
+	[anHIP setValue:[NSNumber numberWithInt:x] forKey:@"x"];
+	[anHIP setValue:[NSNumber numberWithInt:y] forKey:@"y"];
+	[anHIP setValue:[NSNumber numberWithInt:teta] forKey:@"teta"];
+	[anHIP setValue:[NSNumber numberWithLongLong:R1] forKey:@"R1"];
+	[anHIP setValue:[NSNumber numberWithLongLong:R2] forKey:@"R2"];
+	[anHIP setValue:[NSNumber numberWithLongLong:R3] forKey:@"R3"];
+	[anHIP setValue:[NSNumber numberWithLongLong:R4] forKey:@"R4"];
+	[anHIP setValue:[NSNumber numberWithLongLong:R5] forKey:@"R5"];
+}
+
+-(NSManagedObject *)fetchFeaturePointX:(int)x Y:(int)y teta:(int)teta{
+	NSString *entityName = @"FeaturePoint";
+	NSPredicate *predicate = [NSPredicate predicateWithFormat:@"(x BETWEEN { %d , %d }) AND (y BETWEEN { %d , %d }) AND (teta BETWEEN { %d , %d })", x-1, x+1, y-1, y+1, teta-5, teta+5];
+	NSString *sortKey = @"number";
+	BOOL sortAscending = NO;
 	
-	[self clearDatabase];
-	[self printDatabase];
-	indexX = 0;
-	indexY = 0;
-	NSImage * image    = [ghostView image];
-	NSData  * tiffData = [image TIFFRepresentation];
-	NSBitmapImageRep * bitmap;
-	bitmap = [NSBitmapImageRep imageRepWithData:tiffData];
+	NSFetchRequest *request = [[NSFetchRequest alloc] init];
+	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
+	[request setEntity:entity];
+	[request setPredicate:predicate];
+	[request setFetchLimit:1];
 	
-	referenceImage = [[CIImage alloc] initWithBitmapImageRep:bitmap];
+	NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:sortKey ascending:sortAscending];
+	NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
+	[request setSortDescriptors:sortDescriptors];
+	[sortDescriptors release];
+	[sortDescriptor release];
 	
-	NSInvocationOperation *request = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(runTraining:) object:self];
-	[opQueue addOperation:request];
+	
+	NSError *error;
+	
+	NSMutableArray *mutableFetchResults = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
+	
+	NSManagedObject *result = nil;
+	
+	for(NSManagedObject *object in mutableFetchResults){
+		result = object;
+	}
 	[request release];
 	
+	return result;
 }
 
-- (void)processImageTraining:(CIImage *)image{
+-(void)printDatabase{
+	NSString *entityName = @"HIP";
 	
-	NSBitmapImageRep* rep = [[[NSBitmapImageRep alloc] initWithCIImage:image] autorelease];
-	CGImageRef inImage = rep.CGImage;
+	NSFetchRequest *request = [[NSFetchRequest alloc] init];
+	NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:[self managedObjectContext]];
+	[request setEntity:entity];
+	[request setFetchLimit:0];
+	/*
+	 NSString *sortKey = @"number";
+	 BOOL sortAscending = NO;
+	 NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:sortKey ascending:sortAscending];
+	 NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
+	 [request setSortDescriptors:sortDescriptors];
+	 [sortDescriptors release];
+	 [sortDescriptor release];
+	 */
+	NSError *error;
 	
-	CGContextRef    context = NULL;
-	CGColorSpaceRef colorSpace;
-	void *          bitmapData;
-	int             bitmapByteCount;
-	int             bitmapBytesPerRow;
+	NSMutableArray *mutableFetchResults = [[managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
 	
-	// Get image width, height. We'll use the entire image.
-	size_t pixelsWide = CGImageGetWidth(inImage);
-	size_t pixelsHigh = CGImageGetHeight(inImage);
-	
-	// Declare the number of bytes per row. Each pixel in the bitmap in this
-	// example is represented by 1 byte of grey
-	bitmapBytesPerRow   = (pixelsWide);
-	bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
-	
-	// Use the generic RGB color space.
-	colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
-	if (colorSpace == NULL)
-	{
-		fprintf(stderr, "Error allocating color space\n");
-		return;
+	for(NSManagedObject *object in mutableFetchResults){
+		NSPoint origin = {[[object valueForKey:@"x"] intValue]-8,[[object valueForKey:@"y"] intValue]-8};
+		NSSize size = {16, 16};
+		NSRect rect = {origin, size};
+		NSImage *square = [NSImage imageNamed:@"square.jpg"];
+		NSImageView *squareView = [[NSImageView alloc] initWithFrame:rect];
+		[squareView setBoundsRotation:[[object valueForKey:@"teta"] floatValue]];
+		[squareView setImage:square];
+		[ghostView addSubview:squareView];
+		NSLog(@"%@", object);
 	}
-	
-	// Allocate memory for image data. This is the destination in memory
-	// where any drawing to the bitmap context will be rendered.
-	bitmapData = malloc( bitmapByteCount );
-	if (bitmapData == NULL)
-	{
-		fprintf (stderr, "Memory not allocated!");
-		CGColorSpaceRelease( colorSpace );
-		return;
-	}
-	
-	// Create the bitmap context. We want pre-multiplied ARGB, 8-bits
-	// per component. Regardless of what the source image format is
-	// (CMYK, Grayscale, and so on) it will be converted over to the format
-	// specified here by CGBitmapContextCreate.
-	context = CGBitmapContextCreate (bitmapData,
-									 pixelsWide,
-									 pixelsHigh,
-									 8,      // bits per component
-									 bitmapBytesPerRow,
-									 colorSpace,
-									 kCGImageAlphaNone);
-	if (context == NULL)
-	{
-		free (bitmapData);
-		fprintf (stderr, "Context not created!");
-		return;
-	}
-	
-	CGRect rect2 = {{0,0},{pixelsWide,pixelsHigh}}; 
-	
-	// Draw the image to the bitmap context. Once we draw, the memory
-	// allocated for the context for rendering will then contain the
-	// raw image data in the specified color space.
-	CGContextDrawImage(context, rect2, inImage); 
-	
-	// Now we can get a pointer to the image data associated with the bitmap
-	// context.
-	unsigned char* data = CGBitmapContextGetData(context);
-	
-	
-	if (data != NULL) {
-		int numcorners;
-		xy* cornersList;
-		xy* anglesList;
-		xy sampleGrid[64];
-		cornersList = fast9_detect_nonmax(data, pixelsWide, pixelsHigh, bitmapBytesPerRow, 20, &numcorners);
-		anglesList = fast9_angles(data, bitmapBytesPerRow, cornersList, numcorners);
-		for(int i = 0; i<numcorners; i++){
-			//data[cornersList[i].x + bitmapBytesPerRow * cornersList[i].y ] = 255;
-			
-			/*
-			 if(	(cornersList[i].x + anglesList[i].x > 0) &&
-			 (cornersList[i].x + anglesList[i].x < pixelsWide) &&
-			 (cornersList[i].y + anglesList[i].y > 0) &&
-			 (cornersList[i].y + anglesList[i].y < pixelsHigh)){
-			 lineBresenham(cornersList[i].x, cornersList[i].y, cornersList[i].x + anglesList[i].x,  cornersList[i].y + anglesList[i].y, data, bitmapBytesPerRow);
-			 }
-			 */
-			if(	(cornersList[i].x - 12 > 0) &&
-			   (cornersList[i].x + 12 < pixelsWide) &&
-			   (cornersList[i].y - 12 > 0) &&
-			   (cornersList[i].y + 12 < pixelsHigh)){
-				
-				
-				float x = (float)cornersList[i].x;
-				float y = (float)cornersList[i].y;
-				float offsetX = (float)pixelsWide / 2;
-				float offsetY = (float)pixelsHigh / 2;
-				
-				xyz center = {0.0,0.0,0.0};
-				xyz position = {x - offsetX, offsetY - y, 0};
-				xyz anglePosition = {position.x + (float)anglesList[i].x, position.y - (float)anglesList[i].y, 0};
-				
-				position = [self findZforXY:position fromA:center B:downRight C:upRight];
-				anglePosition = [self findZforXY:anglePosition fromA:center B:downRight C:upRight];
-				
-				
-				xyz realPosition = [self transformXYZ:position with:inverseTransform];
-				xyz angleRealPosition = [self transformXYZ:anglePosition with:inverseTransform];
-				
-				xy angle = {angleRealPosition.x - realPosition.x, angleRealPosition.y - realPosition.y};
-				
-				int xvalue = ((int)realPosition.x + IMAGESIZE/2);
-				int yvalue = ((int)realPosition.y + IMAGESIZE/2);
-				
-				if(xvalue > 20 && yvalue > 20 && xvalue<IMAGESIZE-20 && yvalue < IMAGESIZE-20){
-					float sampleValues[64];
-					setRotatedSampleGrid(sampleGrid, anglesList[i]);
-					for(int k =0; k<64; k++){
-						int index = sampleGrid[k].x + cornersList[i].x + bitmapBytesPerRow*(sampleGrid[k].y + cornersList[i].y);
-						sampleValues[k] = data[index];
-						data[index] = 255;
-					}
-					
-					equalize(sampleValues, 64);
-					//[self addFeaturePointX:xvalue Y:yvalue teta:0];
-					[self addFeaturePointX:xvalue Y:yvalue teta:getAngle(angle) samples:sampleValues];
-				}
-			}
-		}
-		
-		free(cornersList);
-		free(anglesList);
-		
-	}
-
-	CGColorSpaceRelease( colorSpace );
-	// When finished, release the context
-	CGContextRelease(context);
-	// Free image data memory for the context
-	if (data) { free(data); }
+	NSLog(@"Number of entries: %d", [mutableFetchResults count]);
+	[request release];
 }
 
--(void)updateProgress:(id)object{
-	NSNumber *value = (NSNumber *)object;
-	[mProgressIndicator setMinValue:0];
-	[mProgressIndicator setMaxValue:100.0];
-	[mProgressIndicator setDoubleValue:[value doubleValue]];
+-(void)clearDatabase{
+	NSManagedObjectContext * context = [self managedObjectContext];
+	NSFetchRequest * fetch = [[[NSFetchRequest alloc] init] autorelease];
+	[fetch setEntity:[NSEntityDescription entityForName:@"FeaturePoint" inManagedObjectContext:context]];
+	NSArray * result = [context executeFetchRequest:fetch error:nil];
+	for (id basket in result)
+		[context deleteObject:basket];
+	
+	[fetch setEntity:[NSEntityDescription entityForName:@"Histogram" inManagedObjectContext:context]];
+	result = [context executeFetchRequest:fetch error:nil];
+	for (id object in result)
+		[context deleteObject:object];
+	
+	[fetch setEntity:[NSEntityDescription entityForName:@"HIP" inManagedObjectContext:context]];
+	result = [context executeFetchRequest:fetch error:nil];
+	for (id object in result)
+		[context deleteObject:object];
 }
--(void)runTraining:(id)object{
-
-	for(indexX = 0; indexX<ITERATIONNUMBER; indexX++){
-		for(indexY = 0; indexY < ITERATIONNUMBER; indexY++){
-		NSNumber *progressValue = [NSNumber numberWithDouble:100*((double)indexX*ITERATIONNUMBER + (double)(indexY+1))/(ITERATIONNUMBER*ITERATIONNUMBER)];
-		[self performSelectorOnMainThread:@selector(updateProgress:) withObject:progressValue waitUntilDone:YES];
-
-	CIImage *ghostbusters = referenceImage;
-	
-	CIFilter *filter = [CIFilter filterWithName:@"CIPerspectiveTransform"];
-	[filter setDefaults];
-	[filter setValue:ghostbusters forKey:@"inputImage"];
-	
-	CATransform3D t = CATransform3DIdentity;
-	t = CATransform3DRotate(t, -M_PI/4 + (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
-	t = CATransform3DRotate(t, -M_PI/4 + (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
-	
-	upLeft.x = -IMAGESIZE/2;
-	upLeft.y = IMAGESIZE/2;
-	upLeft.z = 0;
-	
-	upRight.x = IMAGESIZE/2;
-	upRight.y = IMAGESIZE/2;
-	upRight.z = 0;
-	
-	downLeft.x = -IMAGESIZE/2;
-	downLeft.y = -IMAGESIZE/2;
-	downLeft.z = 0;
-	
-	downRight.x = IMAGESIZE/2;
-	downRight.y = -IMAGESIZE/2;
-	downRight.z = 0;
-	
-	upLeft = [self transformXYZ:upLeft with:t];
-	upRight = [self transformXYZ:upRight with:t];
-	downLeft = [self transformXYZ:downLeft with:t];
-	downRight = [self transformXYZ:downRight with:t];
-	
-	t = CATransform3DIdentity;
-	t = CATransform3DRotate(t, M_PI/4 - (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
-	t = CATransform3DRotate(t, M_PI/4 - (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
-	
-	inverseTransform = t;
-	
-	[filter setValue:[CIVector vectorWithX:upLeft.x
-										 Y:upLeft.y
-					  ] forKey:@"inputTopLeft"];
-	
-	[filter setValue:[CIVector vectorWithX:upRight.x
-										 Y:upRight.y
-					  ] forKey:@"inputTopRight"];
-	
-	[filter setValue:[CIVector vectorWithX:downLeft.x
-										 Y:downLeft.y
-					  ] forKey:@"inputBottomLeft"];
-	
-	[filter setValue:[CIVector vectorWithX:downRight.x
-										 Y:downRight.y
-					  ] forKey:@"inputBottomRight"];
-	
-	CIImage *perspective = [filter valueForKey:@"outputImage"];
-	
-	CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
-	[filter2 setDefaults];
-	[filter2 setValue:perspective forKey:@"inputImage"];
-	[filter2 setValue:[NSNumber numberWithFloat:(0.5 + 1.5 * (float)random()/RAND_MAX)] forKey:@"inputRadius"];
-	CIImage *outputImage = [filter2 valueForKey:@"outputImage"];
-	[self processImageTraining:outputImage];
-	
-		}
-	}
-	[self finalize];
-	[self printDatabase];
-
-}
-
 
 -(void)dealloc{
 	[mCaptureSession release];

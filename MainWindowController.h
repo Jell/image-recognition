@@ -35,6 +35,32 @@
 	xyz downRight;
 	
 	NSArray *hipList;
+	
+	//-----------------Command Outlets
+	IBOutlet NSSlider *realtimeContrast;
+	IBOutlet NSSlider *realtimeThreshold;
+	IBOutlet NSSlider *realtimeInlinerRatio;
+	IBOutlet NSSlider *realtimeBlur;
+	
+	IBOutlet NSSlider *trainingContrast;
+	IBOutlet NSTextField *trainingFeatureNumber;
+	IBOutlet NSTextField *trainingViewNumber;
+	IBOutlet NSTextField *trainingImageSize;
+	
+	IBOutlet NSButton *displayCorners;
+	IBOutlet NSButton *displayAllMatches;
+	IBOutlet NSButton *displayViewBin;
+	IBOutlet NSButton *displayHomography;
+	
+	//-----------------Param Values
+	float BLURVALUE;
+	int IMAGESIZE;
+	int ITERATIONNUMBER;
+	int FEATUREPOINTS_NUMBER;
+	int MINIMUM_CONTRAST_REALTIME;
+	int MINIMUM_CONTRAST_TRAINING;
+	int ACCEPT_THRESHOLD;
+	float INL_PCENT;
 }
 
 - (NSPersistentStoreCoordinator *)persistentStoreCoordinator;
