@@ -5917,7 +5917,7 @@ xy fast9_corner_angle(const byte* im, const int pixel[]){
 				6 * (im[pixel[6]] - im[pixel[14]]) +
 				4 * (im[pixel[7]] - im[pixel[15]])) >> 5;
 	
-	result.y = (4 * (im[pixel[5]]  - im[pixel[13]]) +
+	result.y = -(4 * (im[pixel[5]]  - im[pixel[13]]) +
 				6 * (im[pixel[6]]  - im[pixel[14]]) +
 				7 * (im[pixel[7]]  - im[pixel[15]]) +
 				8 * (im[pixel[8]]  - im[pixel[0]])  +

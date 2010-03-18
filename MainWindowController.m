@@ -10,6 +10,9 @@
 #import "raw_drawing.h"
 #import "hip_calculus.h"
 
+#define MAX_ROT_ANGLE		(M_PI / 45)
+#define BLUR_TRAINING		0.5+2
+
 @implementation MainWindowController
 
 // -------------------Training------------------------------------------------------------------------------------------
@@ -27,8 +30,7 @@
 	
 	[self clearDatabase];
 	[self printDatabase];
-	indexX = 0;
-	indexY = 0;
+
 	NSImage * image    = [ghostView image];
 	NSData  * tiffData = [image TIFFRepresentation];
 	NSBitmapImageRep * bitmap;
@@ -43,9 +45,10 @@
 }
 
 -(void)runTraining:(id)object{
-	
-	for(indexX = 0; indexX<ITERATIONNUMBER; indexX++){
-		for(indexY = 0; indexY < ITERATIONNUMBER; indexY++){
+	[self clearDatabase];
+
+	for(int indexX = 0; indexX<ITERATIONNUMBER; indexX++){
+		for(int indexY = 0; indexY < ITERATIONNUMBER; indexY++){
 			NSNumber *progressValue = [NSNumber numberWithDouble:100*((double)indexX*ITERATIONNUMBER + (double)(indexY+1))/(ITERATIONNUMBER*ITERATIONNUMBER)];
 			[self performSelectorOnMainThread:@selector(updateProgress:) withObject:progressValue waitUntilDone:YES];
 			
@@ -56,8 +59,8 @@
 			[filter setValue:ghostbusters forKey:@"inputImage"];
 			
 			CATransform3D t = CATransform3DIdentity;
-			t = CATransform3DRotate(t, -M_PI/4 + (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
-			t = CATransform3DRotate(t, -M_PI/4 + (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
+			t = CATransform3DRotate(t, -MAX_ROT_ANGLE + 2*(indexX*MAX_ROT_ANGLE/(ITERATIONNUMBER)), 1.0, 0.0, 0.0);
+			t = CATransform3DRotate(t, -MAX_ROT_ANGLE + 2*(indexY*MAX_ROT_ANGLE/(ITERATIONNUMBER)), 0.0, 1.0, 0.0);
 			
 			upLeft.x = -IMAGESIZE/2;
 			upLeft.y = IMAGESIZE/2;
@@ -81,8 +84,8 @@
 			downRight = [self transformXYZ:downRight with:t];
 			
 			t = CATransform3DIdentity;
-			t = CATransform3DRotate(t, M_PI/4 - (indexY*M_PI/(2*ITERATIONNUMBER)), 0.0, 1.0, 0.0);
-			t = CATransform3DRotate(t, M_PI/4 - (indexX*M_PI/(2*ITERATIONNUMBER)), 1.0, 0.0, 0.0);
+			t = CATransform3DRotate(t, MAX_ROT_ANGLE - 2*(indexY*MAX_ROT_ANGLE/(ITERATIONNUMBER)), 0.0, 1.0, 0.0);
+			t = CATransform3DRotate(t, MAX_ROT_ANGLE - 2*(indexX*MAX_ROT_ANGLE/(ITERATIONNUMBER)), 1.0, 0.0, 0.0);
 			
 			inverseTransform = t;
 			
@@ -107,15 +110,13 @@
 			CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
 			[filter2 setDefaults];
 			[filter2 setValue:perspective forKey:@"inputImage"];
-			[filter2 setValue:[NSNumber numberWithFloat:(0.5 + 1.5 * (float)random()/RAND_MAX)] forKey:@"inputRadius"];
+			[filter2 setValue:[NSNumber numberWithFloat:(BLUR_TRAINING * (float)random()/RAND_MAX)] forKey:@"inputRadius"];
 			CIImage *outputImage = [filter2 valueForKey:@"outputImage"];
 			[self processImageTraining:outputImage];
-			
 		}
 	}
 	[self finalize];
 	[self printDatabase];
-	
 }
 
 - (void)processImageTraining:(CIImage *)image{
@@ -217,7 +218,7 @@
 				
 				xyz center = {0.0,0.0,0.0};
 				xyz position = {x - offsetX, offsetY - y, 0};
-				xyz anglePosition = {position.x + (float)anglesList[i].x, position.y - (float)anglesList[i].y, 0};
+				xyz anglePosition = {position.x + (float)anglesList[i].x, position.y + (float)anglesList[i].y, 0};
 				
 				position = [self findZforXY:position fromA:center B:downRight C:upRight];
 				anglePosition = [self findZforXY:anglePosition fromA:center B:downRight C:upRight];
@@ -301,15 +302,15 @@
 			for(int k = 0; k<5; k++){
 				NSString *key = [NSString stringWithFormat:@"Range%d",k+1];
 				float ratio = [[histogram valueForKey:key] floatValue] / number;
-				quantizedSamples[index][k] = (ratio > 0.05);
+				quantizedSamples[index][k] = (ratio < 0.05);
 			}
 		}
 		
-		long long R1 = 0;
-		long long R2 = 0;
-		long long R3 = 0;
-		long long R4 = 0;
-		long long R5 = 0;
+		unsigned long long R1 = 0;
+		unsigned long long R2 = 0;
+		unsigned long long R3 = 0;
+		unsigned long long R4 = 0;
+		unsigned long long R5 = 0;
 		for(int k = 0; k<64; k++){
 			R1 <<= 1;
 			R1 |= quantizedSamples[k][0];
@@ -395,6 +396,10 @@
 - (IBAction)start:(id)sender{
 	ACCEPT_THRESHOLD = [realtimeThreshold intValue];
 	INL_PCENT = [realtimeInlinerRatio floatValue];
+	IMAGESIZE = [trainingImageSize intValue];
+	ITERATIONNUMBER = [trainingViewNumber intValue];
+	FEATUREPOINTS_NUMBER = [trainingFeatureNumber intValue];
+	MINIMUM_CONTRAST_TRAINING = [trainingContrast intValue];
 	
 	if(!mCaptureSession){
 		[mCaptureView setDelegate:self];
@@ -468,7 +473,6 @@
 	
 	CIImage *output = [filter valueForKey:@"outputImage"];
 	
-	
 	CIFilter *filter2 = [CIFilter filterWithName:@"CIGaussianBlur"];
 	[filter2 setDefaults];
 	[filter2 setValue:output forKey:@"inputImage"];
@@ -479,44 +483,48 @@
 	//return outputImage;
 }
 
-- (BOOL)testSampleGrid:(float *)sampleGrid x:(int *)x y:(int *)y teta:(int *)teta{
-	long long R1 = 0;
-	long long R2 = 0;
-	long long R3 = 0;
-	long long R4 = 0;
-	long long R5 = 0;
+- (BOOL)testSampleGrid:(float *)sampleValues angle:(int)angle matchX:(int *)x matchY:(int *)y teta:(int *)teta{
+	unsigned long long R1 = 0;
+	unsigned long long R2 = 0;
+	unsigned long long R3 = 0;
+	unsigned long long R4 = 0;
+	unsigned long long R5 = 0;
 	for(int k = 0; k<64; k++){
 		R1 <<= 1;
-		R1 |= (sampleGrid[k] < -0.75);
+		R1 |= (sampleValues[k] < -0.75);
 		
 		R2 <<= 1;
-		R2 |= (sampleGrid[k] >= -0.75 && sampleGrid[k] < -0.25);
+		R2 |= (sampleValues[k] >= -0.75 && sampleValues[k] < -0.25);
 		
 		R3 <<= 1;
-		R3 |= (sampleGrid[k] >= -0.25 && sampleGrid[k] < 0.25);
+		R3 |= (sampleValues[k] >= -0.25 && sampleValues[k] < 0.25);
 		
 		R4 <<= 1;
-		R4 |= (sampleGrid[k] >= 0.25 && sampleGrid[k] < 0.75);
+		R4 |= (sampleValues[k] >= 0.25 && sampleValues[k] < 0.75);
 		
 		R5 <<= 1;
-		R5 |= (sampleGrid[k] > 0.75);
+		R5 |= (sampleValues[k] > 0.75);
 	}
 	
 	for(NSManagedObject *object in hipList){
-		long long compareR1 = [[object valueForKey:@"R1"] longLongValue];
-		long long compareR2 = [[object valueForKey:@"R2"] longLongValue];
-		long long compareR3 = [[object valueForKey:@"R3"] longLongValue];
-		long long compareR4 = [[object valueForKey:@"R4"] longLongValue];
-		long long compareR5 = [[object valueForKey:@"R5"] longLongValue];
+		
+		int rotationValue = (360 + [[object valueForKey:@"teta"] intValue] - angle)%360;
+		if(rotationValue> *teta && rotationValue < *teta +30){
+		
+		unsigned long long compareR1 = [[object valueForKey:@"R1"] longLongValue];
+		unsigned long long compareR2 = [[object valueForKey:@"R2"] longLongValue];
+		unsigned long long compareR3 = [[object valueForKey:@"R3"] longLongValue];
+		unsigned long long compareR4 = [[object valueForKey:@"R4"] longLongValue];
+		unsigned long long compareR5 = [[object valueForKey:@"R5"] longLongValue];
 		
 		int result = bitcount((R1 & compareR1) | (R2 & compareR2) | (R3 & compareR3) | (R4 & compareR4) | (R5 & compareR5));
-		if(result >=ACCEPT_THRESHOLD){
+		if(64 - result >=ACCEPT_THRESHOLD){
 			*x =  [[object valueForKey:@"x"] intValue];
 			*y =  [[object valueForKey:@"y"] intValue];
 			*teta = [[object valueForKey:@"teta"] intValue];
 			return YES;
 		}
-		
+		}
 	}
 	return NO;
 }
@@ -625,11 +633,42 @@
 				int matchY = 0;
 				int matchTeta = 0;
 				
+				
+				
+				
+				for(int n = 0; n<16; n++){
+					
+					matchTeta = (225 * n)/10;
+					
+					if([self testSampleGrid:sampleValues angle:getAngle(anglesList[i]) matchX:&matchX matchY:&matchY teta:&matchTeta]){
+						NSMutableArray *histogram = [arrayOfBins objectAtIndex:n];
+						[histogram addObject:[[NSNumber numberWithInt:i] retain]];
+						foundCorrespondances[i].x = matchX;
+						foundCorrespondances[i].y = matchY;
+						
+						if([displayAllMatches state] == NSOnState){
+							
+							for(int ii = -5; ii<5; ii++){
+								for(int ij = -5; ij<5; ij++){
+									int dataIndex = ii + cornersList[i].x + bitmapBytesPerRow*(ij + cornersList[i].y);
+									data[dataIndex] = 125;
+								}
+							}
+						}
+						
+						if([displayLink state] == NSOnState){
+						   lineBresenham(cornersList[i].x, cornersList[i].y, IMAGESIZE-matchX, IMAGESIZE-matchY, data, bitmapBytesPerRow);
+						}
+					}
+				}
+				
+				
+				/*
 				if([self testSampleGrid:sampleValues x:&matchX y:&matchY teta:&matchTeta]){
 					
-					int angleBin = (360 + (int)getAngle(anglesList[i]) - matchTeta)%360;
+					int angleBin = (360 + getAngle(anglesList[i]) - matchTeta)%360;
 			
-					NSLog(@"Match: %d, Angle: %d, AngleBine: %d", matchTeta, (int)getAngle(anglesList[i]), angleBin);
+					NSLog(@"Match: %d, Angle: %d, AngleBin: %d", matchTeta, (int)getAngle(anglesList[i]), angleBin);
 					for(int n = 0; n<16; n++){
 						if(angleBin > 22.5 * n && angleBin < 22.5 *n + 45){
 							NSMutableArray *histogram = [arrayOfBins objectAtIndex:n];
@@ -648,16 +687,16 @@
 								}
 							}
 					}
-				}
+				}*/
 			}
 		}
 		
 		int bestBinSize = 0;
 		NSMutableArray *bestBin = nil;
 		for(NSMutableArray *histogram in arrayOfBins){
-			NSLog(@"%@", histogram);
+			//NSLog(@"%@", histogram);
 			int histogramSize = [histogram count];
-			if(histogramSize > 5 && histogramSize > bestBinSize){
+			if(histogramSize >=4 && histogramSize > bestBinSize){
 				bestBinSize = histogramSize;
 				bestBin = histogram;
 			}
@@ -665,13 +704,14 @@
 		
 		if(bestBin!=nil){
 			double (*pts0)[2], (*pts1)[2];
-			int npts, donorm, noutl, *outidx=NULL;
+			int npts, donorm, noutl, *outidx;
 			double H[NUM_HPARAMS];
 			donorm=1;
-			outidx=(int *)malloc(npts*sizeof(int));
+			
 			npts = bestBinSize;
 			pts0=(double (*)[2])malloc(npts*sizeof(double[2]));
 			pts1=(double (*)[2])malloc(npts*sizeof(double[2]));
+			outidx=(unsigned int *)malloc(npts*sizeof(unsigned int));
 			
 			for(int k = 0; k < npts; k++){
 				int index = [[bestBin objectAtIndex:k] intValue];
@@ -710,6 +750,8 @@
 			}else{
 				homest(pts0, pts1, npts, INL_PCENT, H, donorm, cstfunc, outidx, &noutl, 1);
 			}
+			
+			
 			
 			xyz cornerUpLeft = {0,IMAGESIZE,1};
 			xyz cornerUpRight = {IMAGESIZE,IMAGESIZE,1};
@@ -750,6 +792,7 @@
 			transDownRight.x /= transDownRight.z;
 			transDownRight.y /= transDownRight.z;
 			
+			
 			if([displayHomography state] == NSOnState){
 			lineBresenham(transUpLeft.x, transUpLeft.y, transUpRight.x, transUpRight.y, data, bitmapBytesPerRow);
 			lineBresenham(transUpLeft.x, transUpLeft.y, transDownLeft.x, transDownLeft.y, data, bitmapBytesPerRow);
@@ -777,6 +820,9 @@
 			for(int i = 0; i<numcorners; i++){
 				int index = cornersList[i].x + bitmapBytesPerRow*cornersList[i].y;
 				data[index] = 255;
+				
+				lineBresenham(cornersList[i].x, cornersList[i].y, cornersList[i].x+anglesList[i].x, cornersList[i].y+anglesList[i].y, data, bitmapBytesPerRow);
+
 			}
 		}
 		
@@ -837,9 +883,9 @@
         [fileManager createDirectoryAtPath:applicationSupportFolder attributes:nil];
     }
     
-    url = [NSURL fileURLWithPath: [applicationSupportFolder stringByAppendingPathComponent: @"CoreData_Test.xml"]];
+    url = [NSURL fileURLWithPath: [applicationSupportFolder stringByAppendingPathComponent: @"hipdatabase.sqlite"]];
     persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self managedObjectModel]];
-    if (![persistentStoreCoordinator addPersistentStoreWithType:NSXMLStoreType configuration:nil URL:url options:nil error:&error]){
+    if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:url options:nil error:&error]){
         [[NSApplication sharedApplication] presentError:error];
     }    
 	
@@ -905,7 +951,7 @@
 	//NSLog(@"Size :%d", [histograms count]);
 }
 
--(void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(long long)R1 R2:(long long)R2 R3:(long long)R3 R4:(long long)R4 R5:(long long)R5{
+-(void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(unsigned long long)R1 R2:(unsigned long long)R2 R3:(unsigned long long)R3 R4:(unsigned long long)R4 R5:(unsigned long long)R5{
 	NSManagedObject *anHIP = (NSManagedObject *)[NSEntityDescription insertNewObjectForEntityForName:@"HIP" inManagedObjectContext:[self managedObjectContext]];
 	[anHIP setValue:[NSNumber numberWithInt:x] forKey:@"x"];
 	[anHIP setValue:[NSNumber numberWithInt:y] forKey:@"y"];

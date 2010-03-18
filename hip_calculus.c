@@ -35,7 +35,7 @@ void setRotatedSampleGrid(xy sampleGrid[], xy rotationVector){
 }
 
 int getAngle(xy rotationVector){
-	return (int) (180 * atan2((float)rotationVector.y, (float)rotationVector.x) / M_PI);
+	return (int) (180 + 180 * atan2((float)rotationVector.y, (float)rotationVector.x) / M_PI);
 }
 
 void variance( float *arr, int no, float *var, float *avg)

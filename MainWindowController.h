@@ -20,8 +20,8 @@
 	IBOutlet QTCaptureView *mCaptureView;
 	IBOutlet NSImageView *ghostView;
 	IBOutlet NSProgressIndicator *mProgressIndicator;
-	int indexX;
-	int indexY;
+	//int indexX;
+	//int indexY;
 	CIImage * referenceImage;
 	
 	NSPersistentStoreCoordinator *persistentStoreCoordinator;
@@ -52,6 +52,7 @@
 	IBOutlet NSButton *displayAllMatches;
 	IBOutlet NSButton *displayViewBin;
 	IBOutlet NSButton *displayHomography;
+	IBOutlet NSButton *displayLink;
 
 	
 	//-----------------Param Values
@@ -70,7 +71,7 @@
 
 - (IBAction)start:(id)sender;
 - (IBAction)stop:(id)sender;
-- (BOOL)testSampleGrid:(float *)sampleGrid x:(int *)x y:(int *)y teta:(int *)teta;
+- (BOOL)testSampleGrid:(float *)sampleValues angle:(int)angle matchX:(int *)x matchY:(int *)y teta:(int *)teta;
 - (CIImage *)processImage:(CIImage *)image;
 
 //-------------- Training --------------
@@ -89,7 +90,7 @@
 - (NSManagedObjectContext *)managedObjectContext;
 - (void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta samples:(float *)samples;
 - (NSManagedObject *)fetchFeaturePointX:(int)x Y:(int)y teta:(int)teta;
-- (void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(long long)R1 R2:(long long)R2 R3:(long long)R3 R4:(long long)R4 R5:(long long)R5;
+- (void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(unsigned long long)R1 R2:(unsigned long long)R2 R3:(unsigned long long)R3 R4:(unsigned long long)R4 R5:(unsigned long long)R5;
 - (void)printDatabase;
 - (void)clearDatabase;
 
