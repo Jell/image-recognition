@@ -400,6 +400,8 @@
 	ITERATIONNUMBER = [trainingViewNumber intValue];
 	FEATUREPOINTS_NUMBER = [trainingFeatureNumber intValue];
 	MINIMUM_CONTRAST_TRAINING = [trainingContrast intValue];
+	[hipList release];
+	[self genertateHipList];
 	
 	if(!mCaptureSession){
 		[mCaptureView setDelegate:self];
@@ -905,6 +907,14 @@
     }
     
     return managedObjectContext;
+}
+
+- (IBAction) saveAction:(id)sender {
+	
+    NSError *error = nil;
+    if (![[self managedObjectContext] save:&error]) {
+        [[NSApplication sharedApplication] presentError:error];
+    }
 }
 
 

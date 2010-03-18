@@ -20,6 +20,7 @@
 	IBOutlet QTCaptureView *mCaptureView;
 	IBOutlet NSImageView *ghostView;
 	IBOutlet NSProgressIndicator *mProgressIndicator;
+	
 	//int indexX;
 	//int indexY;
 	CIImage * referenceImage;
@@ -88,6 +89,7 @@
 - (NSPersistentStoreCoordinator *)persistentStoreCoordinator;
 - (NSManagedObjectModel *)managedObjectModel;
 - (NSManagedObjectContext *)managedObjectContext;
+- (IBAction) saveAction:(id)sender;
 - (void)addFeaturePointX:(int)x Y:(int)y teta:(int)teta samples:(float *)samples;
 - (NSManagedObject *)fetchFeaturePointX:(int)x Y:(int)y teta:(int)teta;
 - (void)addHIP:(int)x Y:(int)y teta:(int)teta R1:(unsigned long long)R1 R2:(unsigned long long)R2 R3:(unsigned long long)R3 R4:(unsigned long long)R4 R5:(unsigned long long)R5;
