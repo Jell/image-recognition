@@ -140,7 +140,12 @@
 	bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
 	
 	// Use the generic RGB color space.
-	colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+	float white[3] = {0,0,0};
+	float black[3] = {1,1,1};
+	colorSpace = CGColorSpaceCreateCalibratedGray(white, black, 0.8);
+	
+	//colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+	
 	if (colorSpace == NULL)
 	{
 		fprintf(stderr, "Error allocating color space\n");
@@ -552,7 +557,14 @@
 	bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
 	
 	// Use the generic RGB color space.
+	/*
 	colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+	 */
+	
+	float white[3] = {0,0,0};
+	float black[3] = {1,1,1};
+	colorSpace = CGColorSpaceCreateCalibratedGray(white, black, 0.8);
+	
 	if (colorSpace == NULL)
 	{
 		fprintf(stderr, "Error allocating color space\n");
@@ -886,6 +898,7 @@
     }
     
     url = [NSURL fileURLWithPath: [applicationSupportFolder stringByAppendingPathComponent: @"hipdatabase.sqlite"]];
+	NSLog(@"%@", url);
     persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self managedObjectModel]];
     if (![persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:url options:nil error:&error]){
         [[NSApplication sharedApplication] presentError:error];

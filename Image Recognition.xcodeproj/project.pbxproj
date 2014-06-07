@@ -5436,7 +5436,11 @@
 			isa = PBXProject;
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Image Recognition" */;
 			compatibilityVersion = "Xcode 3.1";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				en,
+			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* Image Recognition */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -7187,6 +7191,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
@@ -7203,6 +7208,7 @@
 					"\"$(SRCROOT)/../../Downloads/CLAPACK-3.1.1.1/BLAS/SRC\"",
 				);
 				PRODUCT_NAME = "Image Recognition";
+				SDKROOT = macosx10.7;
 			};
 			name = Debug;
 		};
@@ -7210,6 +7216,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -7223,6 +7230,7 @@
 					"\"$(SRCROOT)/../../Downloads/CLAPACK-3.1.1.1/BLAS/SRC\"",
 				);
 				PRODUCT_NAME = "Image Recognition";
+				SDKROOT = macosx10.7;
 			};
 			name = Release;
 		};
